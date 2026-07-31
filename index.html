@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WPF Inventory">
+<meta name="theme-color" content="#F3F5F8">
+<title>WPF Raw Material Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --bg-page:#F3F5F8;
+    --sidebar-bg:#FFFFFF;
+    --card-bg:#FFFFFF;
+    --border:#E6E9EF;
+    --text:#12141A;
+    --text-dim:#6B7280;
+    --text-faint:#9CA3AF;
+    --blue:#2F6FED;
+    --blue-dark:#1E4FBD;
+    --blue-soft:#EAF1FE;
+    --green:#16A34A;
+    --green-soft:#E7F7EC;
+    --red:#DC2626;
+    --red-soft:#FDEAEA;
+    --amber:#D97706;
+    --amber-soft:#FDF3E3;
+    --purple:#7C3AED;
+    --purple-soft:#F1EBFC;
+    --mono: 'JetBrains Mono','SF Mono',Consolas,monospace;
+    --body: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg-page);color:var(--text);font-family:var(--body);}
+  .app{display:flex;min-height:100vh;}
+
+  .sidebar{width:230px;flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;}
+  .brand{font-weight:700;font-size:15px;padding:8px 10px 20px;color:var(--text);letter-spacing:0.2px;}
+  .brand span{display:block;font-weight:400;font-size:11px;color:var(--text-faint);margin-top:2px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text-dim);font-size:13.5px;font-weight:500;cursor:pointer;margin-bottom:2px;}
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;}
+  .nav-item:hover{background:#F5F7FA;}
+  .nav-item.active{background:var(--blue-soft);color:var(--blue);}
+  .nav-item.active svg{stroke:var(--blue);}
+
+  .main{flex:1;min-width:0;padding:28px 32px 60px;}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:22px;}
+  .topbar h1{font-size:26px;font-weight:700;margin:0 0 4px;letter-spacing:-0.3px;}
+  .topbar p{margin:0;color:var(--text-dim);font-size:13px;}
+  .actions{display:flex;gap:10px;flex-shrink:0;}
+  button{font-family:var(--body);cursor:pointer;border-radius:7px;font-size:13px;font-weight:600;letter-spacing:0.1px;}
+  .btn-primary{background:var(--blue);color:#fff;border:none;padding:10px 16px;}
+  .btn-primary:hover{background:var(--blue-dark);}
+  .btn-secondary{background:#fff;color:var(--blue);border:1px solid var(--blue);padding:10px 16px;}
+  .btn-secondary:hover{background:var(--blue-soft);}
+  .btn-ghost{background:none;border:none;color:var(--text-dim);font-size:12.5px;padding:2px;}
+  .btn-ghost:hover{color:var(--blue);}
+  .btn-warn{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber);padding:9px 14px;}
+  .btn-warn:hover{background:var(--amber);color:#fff;}
+
+  .tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .tab{background:#fff;border:1px solid var(--border);padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;}
+  .tab.active{border-color:var(--blue);color:var(--blue);background:var(--blue-soft);}
+
+  .page{display:none;}
+  .page.active{display:block;}
+
+  .grid{display:grid;gap:18px;}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:repeat(2,1fr);}
+  @media(max-width:1000px){.grid-3{grid-template-columns:1fr 1fr;}}
+  @media(max-width:720px){.grid-3,.grid-2{grid-template-columns:1fr;} .app{flex-direction:column;} .sidebar{width:100%;flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border);} .nav-item{white-space:nowrap;}}
+
+  .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,0.03);}
+  .card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .card-head h3{font-size:14px;font-weight:600;color:var(--text);margin:0;}
+  .card-footer{border-top:1px solid var(--border);margin-top:16px;padding-top:14px;text-align:center;}
+  .card-footer a{color:var(--text-dim);font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;}
+  .card-footer a:hover{color:var(--blue);}
+
+  .badge{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:20px;letter-spacing:0.3px;font-weight:700;}
+  .badge.good{background:var(--green-soft);color:var(--green);}
+  .badge.warn{background:var(--amber-soft);color:var(--amber);}
+  .badge.critical{background:var(--red-soft);color:var(--red);}
+  .badge.na{background:#F1F2F4;color:var(--text-faint);}
+  .badge.info{background:var(--purple-soft);color:var(--purple);}
+
+  .silo-body{display:flex;gap:16px;align-items:center;}
+  .silo-gauge{width:60px;height:130px;flex-shrink:0;}
+  .silo-sub{font-size:11.5px;color:var(--text-faint);margin-bottom:2px;}
+  .readout-kg{font-family:var(--mono);font-size:28px;font-weight:700;line-height:1;letter-spacing:-0.5px;}
+  .readout-kg span{font-size:13px;color:var(--text-dim);font-weight:400;margin-left:4px;}
+  .readout-line{font-size:12px;color:var(--text-dim);margin-top:10px;line-height:1.6;}
+  .readout-line b{color:var(--text);font-weight:600;}
+
+  .stat-big{font-family:var(--mono);font-size:30px;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px;}
+  .stat-big span{font-size:13px;color:var(--text-dim);font-weight:400;margin-left:6px;}
+  .pill-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .pill{flex:1;min-width:130px;border-radius:10px;padding:10px 12px;}
+  .pill-dot{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;margin-bottom:4px;}
+  .pill-dot::before{content:'';width:7px;height:7px;border-radius:50%;display:inline-block;}
+  .pill.p-blue{background:var(--blue-soft);} .pill.p-blue .pill-dot{color:var(--blue);} .pill.p-blue .pill-dot::before{background:var(--blue);}
+  .pill.p-green{background:var(--green-soft);} .pill.p-green .pill-dot{color:var(--green);} .pill.p-green .pill-dot::before{background:var(--green);}
+  .pill.p-amber{background:var(--amber-soft);} .pill.p-amber .pill-dot{color:var(--amber);} .pill.p-amber .pill-dot::before{background:var(--amber);}
+  .pill-num{font-family:var(--mono);font-size:16px;font-weight:700;}
+  .pill-sub{font-size:10.5px;color:var(--text-dim);margin-top:2px;}
+
+  .source-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:13px;}
+  .source-label{width:150px;flex-shrink:0;font-weight:600;color:var(--text);}
+  .source-bar-wrap{flex:1;background:#F1F2F4;border-radius:5px;height:16px;overflow:hidden;}
+  .source-bar{height:100%;border-radius:5px;}
+  .source-val{width:150px;flex-shrink:0;font-family:var(--mono);font-size:12px;color:var(--text-dim);text-align:right;}
+
+  .taal-manage{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px;}
+  .taal-chip{background:#F5F7FA;border:1px solid var(--border);border-radius:16px;padding:5px 6px 5px 12px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;}
+  .taal-chip button{background:none;border:none;color:var(--text-faint);font-size:13px;padding:2px 6px;}
+  .taal-chip button:hover{color:var(--red);}
+  .taal-add{display:flex;gap:8px;margin-top:12px;}
+  .taal-add input{background:#fff;border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:12.5px;width:180px;}
+
+  .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px;}
+  .field label{display:block;font-size:11.5px;color:var(--text-dim);margin-bottom:5px;font-weight:500;}
+  .field input,.field select{width:100%;background:#fff;border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:7px;font-family:var(--mono);font-size:13px;}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--blue);}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  th{text-align:left;color:var(--text-faint);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;padding:10px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  td{padding:10px 10px;border-bottom:1px solid #F1F2F4;font-family:var(--mono);white-space:nowrap;color:var(--text);}
+  tr:hover td{background:#FAFBFC;}
+  .mat-tag{font-family:var(--body);font-size:11px;padding:3px 9px;border-radius:12px;font-weight:600;}
+  .mat-tag.burada{background:var(--amber-soft);color:var(--amber);}
+  .mat-tag.devi{background:var(--green-soft);color:var(--green);}
+  .prod-tag{font-family:var(--body);font-size:11px;padding:3px 9px;border-radius:12px;font-weight:600;}
+  .prod-tag.blaze{background:var(--red-soft);color:var(--red);}
+  .prod-tag.master{background:var(--purple-soft);color:var(--purple);}
+  .prod-tag.signatureGold{background:var(--amber-soft);color:var(--amber);}
+  .src-tag{font-family:var(--body);font-size:11.5px;color:var(--text-dim);}
+  .type-tag{font-family:var(--body);font-size:12px;font-weight:600;}
+  .type-tag.in{color:var(--green);}
+  .type-tag.out{color:var(--amber);}
+  .type-tag.estimate{color:var(--blue);}
+  .empty-row td{color:var(--text-faint);font-family:var(--body);text-align:center;padding:30px;white-space:normal;}
+  .del-btn{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:15px;}
+  .del-btn:hover{color:var(--red);}
+  .table-scroll{overflow-x:auto;}
+
+  .modal-backdrop{position:fixed;inset:0;background:rgba(16,20,30,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:#fff;border:1px solid var(--border);border-radius:14px;padding:26px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 50px rgba(16,24,40,0.15);}
+  .modal h3{font-size:17px;margin:0 0 18px;font-weight:700;}
+  .modal .field{margin-bottom:13px;}
+  .net-preview{font-family:var(--mono);font-size:13px;color:var(--green);margin-bottom:13px;padding:10px 12px;background:var(--green-soft);border-radius:8px;line-height:1.6;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .status-msg{font-size:13px;color:var(--text-dim);padding:40px;text-align:center;}
+  .footnote{color:var(--text-faint);font-size:12px;margin-top:20px;text-align:center;}
+
+  .pile-row{border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;background:#FAFBFC;}
+  .pile-row-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .pile-row-top span{font-size:12px;font-weight:600;color:var(--text-dim);}
+  .pile-row-remove{background:none;border:none;color:var(--text-faint);font-size:14px;cursor:pointer;}
+  .pile-row-remove:hover{color:var(--red);}
+  .pile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .pile-grid .field{margin-bottom:0;}
+  .pile-kg{font-family:var(--mono);font-size:12px;color:var(--green);margin-top:8px;font-weight:600;}
+
+  .flag-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .calib-note{font-size:12px;color:var(--text-dim);margin-top:10px;line-height:1.5;}
+
+  /* Slim custom scrollbars */
+  *{scrollbar-width:thin;scrollbar-color:#A7E3C3 transparent;}
+  ::-webkit-scrollbar{width:3px;height:3px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#A7E3C3;border-radius:10px;}
+  ::-webkit-scrollbar-thumb:hover{background:#7FD1A6;}
+  .modal::-webkit-scrollbar{width:3px;}
+  .modal::-webkit-scrollbar-thumb{background:#A7E3C3;border-radius:10px;}
+  .modal::-webkit-scrollbar-thumb:hover{background:#7FD1A6;}
+
+#lockScreen{position:fixed;inset:0;background:#F3F5F8;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+#lockScreen .lockBox{background:#fff;border-radius:16px;padding:40px 32px;max-width:340px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.08);text-align:center;}
+#lockScreen .lockIcon{width:48px;height:48px;margin:0 auto 16px;color:#2F6FED;}
+#lockScreen h2{font-size:18px;margin-bottom:6px;color:#1a1a1a;}
+#lockScreen p{font-size:13px;color:#777;margin-bottom:20px;}
+#lockScreen input{width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:10px;font-size:15px;text-align:center;letter-spacing:2px;margin-bottom:12px;font-family:inherit;}
+#lockScreen input:focus{outline:none;border-color:#2F6FED;}
+#lockScreen button{width:100%;padding:12px;border:none;border-radius:10px;background:#2F6FED;color:#fff;font-size:14px;font-weight:600;cursor:pointer;}
+#lockScreen button:active{opacity:0.85;}
+#lockScreen .lockError{color:#E4483F;font-size:12px;margin-top:10px;min-height:16px;}
+.app{display:none;}
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="lockBox">
+    <svg class="lockIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+    <h2>WPF Inventory Monitor</h2>
+    <p>Enter password to continue</p>
+    <input type="password" id="lockInput" placeholder="Password" onkeydown="if(event.key==='Enter')checkLockPassword()">
+    <button onclick="checkLockPassword()">Unlock</button>
+    <div class="lockError" id="lockError"></div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">WPF Inventory<span>Raw Material Monitor</span></div>
+    <div class="nav-item active" data-page="overview" onclick="showPage('overview')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h7v7"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" data-page="sources" onclick="showPage('sources')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>
+      Purchases &amp; Sources
+    </div>
+    <div class="nav-item" data-page="production" onclick="showPage('production')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V10l5 3v-3l5 3v-3l5 3v8H3z"/><path d="M3 21h18"/></svg>
+      Production
+    </div>
+    <div class="nav-item" data-page="log" onclick="showPage('log')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      Activity Log
+    </div>
+    <div class="nav-item" data-page="checks" onclick="showPage('checks')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 7v3M10 7v4M14 7v3M18 7v4"/></svg>
+      Stock Check
+    </div>
+    <div class="nav-item" data-page="settings" onclick="showPage('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 11-4 0v-.2a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.2a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9.5a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.2a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9.5a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.2a1.7 1.7 0 00-1.5 1z"/></svg>
+      Settings
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="statusMsg" class="status-msg">Loading inventory data…</div>
+
+    <div id="mainContent" style="display:none;">
+      <div class="topbar">
+        <div>
+          <h1 id="pageTitle">Overview</h1>
+          <p id="pageSub">Burada &amp; Devi Wood — Ali Bhai (Taals) + Akhtar</p>
+        </div>
+        <div class="actions">
+          <button class="btn-secondary" onclick="exportSnapshot()">⬇ Export Snapshot</button>
+          <button class="btn-secondary" onclick="openModal('in')">+ Log Purchase / Delivery</button>
+          <button class="btn-primary" onclick="openProductionModal()">+ Log Production</button>
+        </div>
+      </div>
+
+      <!-- OVERVIEW -->
+      <div class="page active" id="page-overview">
+        <div class="grid grid-3" style="margin-bottom:18px;">
+          <div class="card" id="siloBuradaCard"></div>
+          <div class="card" id="siloDeviCard"></div>
+          <div class="card">
+            <div class="card-head"><h3>Purchase Averages</h3></div>
+            <div id="overviewAverages"></div>
+            <div class="card-footer"><a onclick="showPage('sources')">View sources</a></div>
+          </div>
+        </div>
+        <div class="grid grid-2" style="margin-bottom:18px;">
+          <div class="card">
+            <div class="card-head"><h3>Purchased vs Consumed &amp; Active Wastage</h3></div>
+            <div id="wastageOverviewCard"></div>
+            <div class="card-footer"><a onclick="showPage('checks')">Manage wastage calibration</a></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Bareek vs Mota — Consumption Breakdown</h3></div>
+            <div id="buradaTypeBreakdown"></div>
+            <div class="card-footer"><a onclick="showPage('production')">View production log</a></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Devi Wood — Source Breakdown</h3></div>
+          <div id="sourceBreakdownOverview"></div>
+          <div class="card-footer"><a onclick="showPage('sources')">Manage Taals</a></div>
+        </div>
+      </div>
+
+      <!-- SOURCES -->
+      <div class="page" id="page-sources">
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-head"><h3>Devi Wood — Source Breakdown (cumulative)</h3></div>
+            <div id="sourceBreakdownFull"></div>
+            <div class="taal-manage" id="taalManage"></div>
+            <div class="taal-add">
+              <input type="text" id="newTaalName" placeholder="New Taal name / location">
+              <button class="btn-secondary" onclick="addTaal()">+ Add Taal</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Purchase Averages (daily)</h3></div>
+            <div id="purchaseAverages" class="grid grid-2" style="gap:12px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRODUCTION -->
+      <div class="page" id="page-production">
+        <div class="topbar" style="margin-bottom:16px;">
+          <p style="margin:0;color:var(--text-dim);font-size:13px;max-width:560px;">Each run auto-calculates raw material consumed from output, wastage %, and conveyor speeds, and deducts it from stock.</p>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Production Runs</h3></div>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Shift</th><th>Product</th><th>Output (kg)</th><th>Wastage %</th><th>Burada used (kg)</th><th>Wood used (kg)</th><th>Note</th><th></th></tr></thead>
+            <tbody id="productionBody"></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVITY LOG -->
+      <div class="page" id="page-log">
+        <div class="tabs">
+          <div class="tab active" data-range="all" onclick="setRange('all')">All time</div>
+          <div class="tab" data-range="30" onclick="setRange('30')">30 days</div>
+          <div class="tab" data-range="7" onclick="setRange('7')">7 days</div>
+          <div class="tab" data-range="1" onclick="setRange('1')">Today</div>
+        </div>
+        <div class="card">
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Material</th><th>Type</th><th>Source</th><th>Gross</th><th>Tare</th><th>Net/Qty (kg)</th><th>Rate</th><th>Value</th><th>Note</th><th></th></tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- STOCK CHECK -->
+      <div class="page" id="page-checks">
+        <div class="topbar" style="margin-bottom:16px;">
+          <p style="margin:0;color:var(--text-dim);font-size:13px;max-width:520px;">Measure a pile's dimensions to estimate its weight, then compare against what the books say should be there.</p>
+          <button class="btn-primary" onclick="openEstimateModal()">+ New Stock Check</button>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3>Stock Check History</h3></div>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Material</th><th>Estimated (kg)</th><th>Book stock (kg)</th><th>Variance</th><th>Status</th><th></th></tr></thead>
+            <tbody id="checksBody"></tbody>
+          </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Wastage Calibration</h3></div>
+          <p style="font-size:12.5px;color:var(--text-dim);margin:0 0 14px;">Flag a material as near-empty when the pile is basically gone. This recalculates the Active Wastage % using real purchase totals since the last flag — no estimation involved.</p>
+          <div class="flag-row">
+            <button class="btn-warn" onclick="openZeroFlagModal('burada')">Flag Burada as near-empty</button>
+            <button class="btn-warn" onclick="openZeroFlagModal('devi')">Flag Devi Wood as near-empty</button>
+          </div>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Material</th><th>Stock reset?</th><th></th></tr></thead>
+            <tbody id="zeroFlagBody"></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="page" id="page-settings">
+        <div class="card">
+          <div class="card-head"><h3>Configuration</h3></div>
+          <div class="settings-grid">
+            <div class="field"><label>Burada opening stock (kg)</label><input type="number" id="cfgBuradaOpen" min="0"></div>
+            <div class="field"><label>Devi Wood opening stock (kg)</label><input type="number" id="cfgDeviOpen" min="0"></div>
+            <div class="field"><label>Burada rate — Ali Bhai (PKR/kg)</label><input type="number" id="cfgBuradaRate" min="0" step="0.5"></div>
+            <div class="field"><label>Devi Wood rate — Ali Bhai/Taal (PKR/kg)</label><input type="number" id="cfgAliDeviRate" min="0" step="0.5"></div>
+            <div class="field"><label>Devi Wood rate — Akhtar (PKR/kg)</label><input type="number" id="cfgAkhtarRate" min="0" step="0.5"></div>
+            <div class="field"><label>Reorder threshold — Burada (days)</label><input type="number" id="cfgReorderBurada" min="1" step="0.5"></div>
+            <div class="field"><label>Reorder threshold — Devi Wood (days)</label><input type="number" id="cfgReorderDevi" min="1" step="0.5"></div>
+            <div class="field"><label>Devi Wood effective density (kg/m³, stacked)</label><input type="number" id="cfgDeviDensity" min="1" step="5"></div>
+            <div class="field"><label>Burada effective density (kg/m³, piled)</label><input type="number" id="cfgBuradaDensity" min="1" step="5"></div>
+            <div class="field"><label>Stock check — flag variance above (%)</label><input type="number" id="cfgVarianceThreshold" min="1" step="1"></div>
+            <div class="field"><label>Starting wastage % (used until real data exists)</label><input type="number" id="cfgStartingWastage" min="0" max="90" step="1"></div>
+          </div>
+          <p style="font-size:12px;color:var(--text-dim);margin:-4px 0 14px;">Effective density accounts for air gaps in a stacked pile — it's an estimate, not a lab value. Adjust it over time as you compare Stock Check readings against what actually gets consumed.</p>
+          <button class="btn-primary" onclick="saveConfig()">Save settings</button>
+          <button class="btn-ghost" style="margin-left:14px;" onclick="resetAll()">Reset all data</button>
+        </div>
+      </div>
+
+      <p class="footnote">Devi Wood via Ali Bhai's Taals = Gross (loaded) − Tare (empty after unload) per truck. Akhtar delivers direct. Burada (Bareek + Mota, mixed delivery) is tracked as one combined stock; the split is known only at the point of production use.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PURCHASE / USAGE MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3 id="modalTitle">Log Purchase / Delivery</h3>
+    <div class="field" id="categoryField">
+      <label>Category</label>
+      <select id="mCategory" onchange="onCategoryChange()">
+        <option value="taal">Devi Wood — Taal delivery (Ali Bhai)</option>
+        <option value="akhtar">Devi Wood — Akhtar delivery</option>
+        <option value="burada">Burada purchase (Ali Bhai, mixed Bareek+Mota)</option>
+      </select>
+    </div>
+    <div class="field" id="usageMatField" style="display:none;">
+      <label>Material</label>
+      <select id="mUsageMaterial"><option value="devi">Devi Wood</option><option value="burada">Burada</option></select>
+    </div>
+    <div class="field"><label>Date</label><input type="date" id="mDate"></div>
+    <div class="field" id="taalSelectField"><label>Taal</label><select id="mTaal"></select></div>
+    <div class="field" id="grossField"><label>Gross weight — loaded (kg)</label><input type="number" id="mGross" min="0" step="1" oninput="updateNetPreview()"></div>
+    <div class="field" id="tareField"><label>Tare weight — empty after unload (kg)</label><input type="number" id="mTare" min="0" step="1" oninput="updateNetPreview()"></div>
+    <div class="net-preview" id="netPreview" style="display:none;">Net delivered: — kg</div>
+    <div class="field" id="qtyField"><label>Quantity (kg)</label><input type="number" id="mQty" min="0" step="1"></div>
+    <div class="field" id="rateField"><label>Rate (PKR/kg)</label><input type="number" id="mRate" min="0" step="0.5"></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="mNote" placeholder="e.g. Truck #, driver name"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK CHECK ESTIMATE MODAL -->
+<div class="modal-backdrop" id="estimateModalBackdrop">
+  <div class="modal" style="max-width:520px;">
+    <h3>New Stock Check</h3>
+    <div class="field"><label>Date</label><input type="date" id="eDate"></div>
+    <div class="field"><label>Material</label>
+      <select id="eMaterial" onchange="renderPileRows()">
+        <option value="devi">Devi Wood</option>
+        <option value="burada">Burada</option>
+      </select>
+    </div>
+    <div id="pileRows"></div>
+    <button class="btn-secondary" style="margin-bottom:14px;" onclick="addPileRow()">+ Add pile</button>
+    <div class="net-preview" id="estimateTotal">Total estimated: 0 kg</div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="eNote" placeholder="e.g. who measured, which yard area"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeEstimateModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEstimate()">Save Stock Check</button>
+    </div>
+  </div>
+</div>
+
+<!-- ZERO-STOCK FLAG MODAL -->
+<div class="modal-backdrop" id="zeroFlagModalBackdrop">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="zeroFlagTitle">Flag material as near-empty</h3>
+    <p style="font-size:13px;color:var(--text-dim);margin-top:-8px;">This recalculates Active Wastage % using real purchases since the last flag for this material, treating today as a true zero point.</p>
+    <div class="modal-actions" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:14px;">
+      <button class="btn-primary" onclick="confirmZeroFlag(true)">Reset stock to 0 too</button>
+      <button class="btn-secondary" onclick="confirmZeroFlag(false)">Keep stock as-is, just recalibrate</button>
+      <button class="btn-ghost" onclick="closeZeroFlagModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCTION MODAL -->
+<div class="modal-backdrop" id="productionModalBackdrop">
+  <div class="modal">
+    <h3>Log Production Run</h3>
+    <div class="field"><label>Date</label><input type="date" id="pDate"></div>
+    <div class="field"><label>Shift</label>
+      <select id="pShift"><option value="day">Day (9AM–7PM)</option><option value="night">Night (9PM–7AM)</option></select>
+    </div>
+    <div class="field"><label>Product</label>
+      <select id="pProduct" onchange="onProductionProductChange()">
+        <option value="blaze">Blaze (Bareek Burada + Devi Wood)</option>
+        <option value="master">Master (Mota Burada + Devi Wood)</option>
+        <option value="signatureGold">Signature Gold (Devi Wood only)</option>
+      </select>
+    </div>
+    <div class="field"><label>Output — pellets produced (kg)</label><input type="number" id="pOutput" min="0" step="1" oninput="updateProductionPreview()"></div>
+    <div class="field"><label>Wastage % (auto-filled from Active Wastage, editable)</label><input type="number" id="pWastage" min="0" max="90" step="0.5" oninput="updateProductionPreview()"></div>
+    <div class="pile-grid" style="margin-bottom:13px;">
+      <div class="field" id="pBareekSpeedField"><label>Bareek conveyor speed</label><input type="number" id="pBareekSpeed" min="0" step="0.5" oninput="updateProductionPreview()"></div>
+      <div class="field" id="pMotaSpeedField" style="display:none;"><label>Mota conveyor speed</label><input type="number" id="pMotaSpeed" min="0" step="0.5" oninput="updateProductionPreview()"></div>
+      <div class="field" id="pWoodSpeedField"><label>Wood conveyor speed</label><input type="number" id="pWoodSpeed" min="0" step="0.5" oninput="updateProductionPreview()"></div>
+    </div>
+    <div class="net-preview" id="productionPreview">Total RM consumed: — kg</div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="pNote" placeholder="e.g. customer, batch notes"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeProductionModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveProduction()">Save Run</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'wpf-rm-inventory-data-v3';
+let data = null;
+let modalMode = 'in';
+let logRange = 'all';
+let zeroFlagMaterial = null;
+
+/* Storage shim: uses Claude's window.storage when running inside a Claude artifact,
+   falls back to the browser's own localStorage when hosted independently (e.g. GitHub Pages). */
+const storage = (window.storage) ? window.storage : {
+  async get(key){
+    const v = localStorage.getItem(key);
+    return v!==null ? {key, value:v, shared:false} : null;
+  },
+  async set(key, value){
+    localStorage.setItem(key, value);
+    return {key, value, shared:false};
+  },
+  async delete(key){
+    localStorage.removeItem(key);
+    return {key, deleted:true, shared:false};
+  }
+};
+
+const defaultData = {
+  config:{ buradaOpen:0, deviOpen:0, buradaRate:16, aliDeviRate:17.5, akhtarRate:17.5, reorderBurada:3, reorderDevi:3,
+    deviDensity:400, buradaDensity:250, varianceThreshold:15, startingWastagePct:30 },
+  taals:[], transactions:[], production:[],
+  wastage:{ zeroFlags:{ burada:[], devi:[] } }
+};
+
+async function loadData(){
+  try{
+    const res = await storage.get(STORAGE_KEY, false);
+    data = res && res.value ? JSON.parse(res.value) : JSON.parse(JSON.stringify(defaultData));
+  }catch(e){ data = JSON.parse(JSON.stringify(defaultData)); }
+  if(!data.taals) data.taals = [];
+  if(!data.production) data.production = [];
+  if(!data.wastage) data.wastage = { zeroFlags:{ burada:[], devi:[] } };
+  if(!data.wastage.zeroFlags) data.wastage.zeroFlags = { burada:[], devi:[] };
+  if(data.config.startingWastagePct===undefined) data.config.startingWastagePct = 30;
+  document.getElementById('statusMsg').style.display='none';
+  document.getElementById('mainContent').style.display='block';
+  populateSettingsFields();
+  render();
+}
+async function persist(){
+  try{ await storage.set(STORAGE_KEY, JSON.stringify(data), false); }
+  catch(e){ console.error('Storage save failed', e); }
+}
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.page===name));
+  const titles = {overview:['Overview','Burada & Devi Wood — Ali Bhai (Taals) + Akhtar'],
+    sources:['Purchases & Sources','Taal-level and supplier-level breakdown'],
+    production:['Production','Log runs — auto-calculates RM consumption from output, wastage % and conveyor speeds'],
+    log:['Activity Log','Every logged delivery, usage and production entry'],
+    checks:['Stock Check','Pile-based physical estimate, and wastage calibration'],
+    settings:['Settings','Opening stock, rates and reorder thresholds']};
+  document.getElementById('pageTitle').textContent = titles[name][0];
+  document.getElementById('pageSub').textContent = titles[name][1];
+}
+function setRange(r){
+  logRange = r;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.range===r));
+  renderLog();
+}
+
+/* ---- Settings ---- */
+function populateSettingsFields(){
+  document.getElementById('cfgBuradaOpen').value = data.config.buradaOpen;
+  document.getElementById('cfgDeviOpen').value = data.config.deviOpen;
+  document.getElementById('cfgBuradaRate').value = data.config.buradaRate;
+  document.getElementById('cfgAliDeviRate').value = data.config.aliDeviRate;
+  document.getElementById('cfgAkhtarRate').value = data.config.akhtarRate;
+  document.getElementById('cfgReorderBurada').value = data.config.reorderBurada;
+  document.getElementById('cfgReorderDevi').value = data.config.reorderDevi;
+  document.getElementById('cfgDeviDensity').value = data.config.deviDensity;
+  document.getElementById('cfgBuradaDensity').value = data.config.buradaDensity;
+  document.getElementById('cfgVarianceThreshold').value = data.config.varianceThreshold;
+  document.getElementById('cfgStartingWastage').value = data.config.startingWastagePct;
+}
+function saveConfig(){
+  data.config.buradaOpen = parseFloat(document.getElementById('cfgBuradaOpen').value)||0;
+  data.config.deviOpen = parseFloat(document.getElementById('cfgDeviOpen').value)||0;
+  data.config.buradaRate = parseFloat(document.getElementById('cfgBuradaRate').value)||0;
+  data.config.aliDeviRate = parseFloat(document.getElementById('cfgAliDeviRate').value)||0;
+  data.config.akhtarRate = parseFloat(document.getElementById('cfgAkhtarRate').value)||0;
+  data.config.reorderBurada = parseFloat(document.getElementById('cfgReorderBurada').value)||3;
+  data.config.reorderDevi = parseFloat(document.getElementById('cfgReorderDevi').value)||3;
+  data.config.deviDensity = parseFloat(document.getElementById('cfgDeviDensity').value)||400;
+  data.config.buradaDensity = parseFloat(document.getElementById('cfgBuradaDensity').value)||250;
+  data.config.varianceThreshold = parseFloat(document.getElementById('cfgVarianceThreshold').value)||15;
+  data.config.startingWastagePct = parseFloat(document.getElementById('cfgStartingWastage').value)||30;
+  persist(); render();
+}
+function resetAll(){
+  if(!confirm('This clears all logged deliveries, usage, production, Taals and settings. Continue?')) return;
+  data = JSON.parse(JSON.stringify(defaultData));
+  populateSettingsFields(); persist(); render();
+}
+
+/* ---- Taals ---- */
+function addTaal(){
+  const input = document.getElementById('newTaalName');
+  const name = input.value.trim();
+  if(!name) return;
+  data.taals.push({id:'t'+Date.now().toString(36), name});
+  input.value=''; persist(); render();
+}
+function removeTaal(id){
+  const used = data.transactions.some(t=>t.taalId===id);
+  if(used && !confirm('This Taal has logged deliveries. Remove it from the active list? (past entries keep their record)')) return;
+  data.taals = data.taals.filter(t=>t.id!==id);
+  persist(); render();
+}
+
+/* ---- Purchase / Usage modal ---- */
+function openModal(mode){
+  modalMode = mode;
+  document.getElementById('modalTitle').textContent = mode==='in' ? 'Log Purchase / Delivery' : 'Log Usage';
+  document.getElementById('categoryField').style.display = mode==='in' ? 'block' : 'none';
+  document.getElementById('usageMatField').style.display = mode==='out' ? 'block' : 'none';
+  document.getElementById('mDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('mNote').value='';
+  document.getElementById('mGross').value='';
+  document.getElementById('mTare').value='';
+  document.getElementById('mQty').value='';
+  populateTaalSelect();
+  if(mode==='out'){
+    document.getElementById('taalSelectField').style.display='none';
+    document.getElementById('grossField').style.display='none';
+    document.getElementById('tareField').style.display='none';
+    document.getElementById('netPreview').style.display='none';
+    document.getElementById('qtyField').style.display='block';
+    document.getElementById('rateField').style.display='none';
+  } else { onCategoryChange(); }
+  document.getElementById('modalBackdrop').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalBackdrop').classList.remove('open'); }
+function populateTaalSelect(){
+  const sel = document.getElementById('mTaal');
+  sel.innerHTML = data.taals.map(t=>`<option value="${t.id}">${t.name}</option>`).join('') || '<option value="">No Taals added yet</option>';
+}
+function onCategoryChange(){
+  const cat = document.getElementById('mCategory').value;
+  const showTaal = cat==='taal';
+  document.getElementById('taalSelectField').style.display = showTaal ? 'block' : 'none';
+  document.getElementById('grossField').style.display = showTaal ? 'block' : 'none';
+  document.getElementById('tareField').style.display = showTaal ? 'block' : 'none';
+  document.getElementById('netPreview').style.display = showTaal ? 'block' : 'none';
+  document.getElementById('qtyField').style.display = showTaal ? 'none' : 'block';
+  document.getElementById('rateField').style.display = 'block';
+  if(cat==='burada') document.getElementById('mRate').value = data.config.buradaRate;
+  else if(cat==='akhtar') document.getElementById('mRate').value = data.config.akhtarRate;
+  else if(cat==='taal') document.getElementById('mRate').value = data.config.aliDeviRate;
+  updateNetPreview();
+}
+function updateNetPreview(){
+  const gross = parseFloat(document.getElementById('mGross').value)||0;
+  const tare = parseFloat(document.getElementById('mTare').value)||0;
+  const net = gross - tare;
+  document.getElementById('netPreview').textContent = `Net delivered: ${net>0?net.toLocaleString():0} kg`;
+}
+function saveEntry(){
+  const date = document.getElementById('mDate').value;
+  const note = document.getElementById('mNote').value.trim();
+  if(!date){ alert('Please enter a date.'); return; }
+  if(modalMode==='out'){
+    const material = document.getElementById('mUsageMaterial').value;
+    const qty = parseFloat(document.getElementById('mQty').value);
+    if(!qty || qty<=0){ alert('Please enter a valid quantity.'); return; }
+    data.transactions.push({id:genId(), date, type:'out', material, category:'consumption', qty, rate:null, note});
+  } else {
+    const cat = document.getElementById('mCategory').value;
+    if(cat==='taal'){
+      const taalId = document.getElementById('mTaal').value;
+      if(!taalId){ alert('Please add and select a Taal first.'); return; }
+      const gross = parseFloat(document.getElementById('mGross').value);
+      const tare = parseFloat(document.getElementById('mTare').value);
+      const rate = parseFloat(document.getElementById('mRate').value)||0;
+      if(!gross || tare===''||isNaN(tare) || gross<=tare){ alert('Please enter valid Gross and Tare weights (Gross must exceed Tare).'); return; }
+      data.transactions.push({id:genId(), date, type:'in', material:'devi', category:'taal', taalId, gross, tare, qty:gross-tare, rate, note});
+    } else if(cat==='akhtar'){
+      const qty = parseFloat(document.getElementById('mQty').value);
+      const rate = parseFloat(document.getElementById('mRate').value)||0;
+      if(!qty || qty<=0){ alert('Please enter a valid quantity.'); return; }
+      data.transactions.push({id:genId(), date, type:'in', material:'devi', category:'akhtar', qty, rate, note});
+    } else if(cat==='burada'){
+      const qty = parseFloat(document.getElementById('mQty').value);
+      const rate = parseFloat(document.getElementById('mRate').value)||0;
+      if(!qty || qty<=0){ alert('Please enter a valid quantity.'); return; }
+      data.transactions.push({id:genId(), date, type:'in', material:'burada', category:'burada', qty, rate, note});
+    }
+  }
+  persist(); closeModal(); render();
+}
+function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function deleteEntry(id){ data.transactions = data.transactions.filter(t=>t.id!==id); persist(); render(); }
+
+/* ---- Balances ---- */
+function computeBalance(material){
+  let bal = material==='burada' ? data.config.buradaOpen : data.config.deviOpen;
+  data.transactions.filter(t=>t.material===material && (t.type==='in'||t.type==='out')).forEach(t=>{ bal += t.type==='in' ? t.qty : -t.qty; });
+  return bal;
+}
+function computeBalanceAsOf(material, dateStr){
+  let bal = material==='burada' ? data.config.buradaOpen : data.config.deviOpen;
+  const cutoff = new Date(dateStr).getTime();
+  data.transactions.filter(t=>t.material===material && (t.type==='in'||t.type==='out') && new Date(t.date).getTime() <= cutoff).forEach(t=>{ bal += t.type==='in' ? t.qty : -t.qty; });
+  return bal;
+}
+function computeAvgDailyUsage(material){
+  const cons = data.transactions.filter(t=>t.material===material && t.type==='out');
+  if(cons.length===0) return null;
+  const dates = cons.map(t=>new Date(t.date).getTime());
+  const spanDays = Math.max(1, Math.round((Math.max(...dates)-Math.min(...dates))/86400000)+1);
+  return cons.reduce((s,t)=>s+t.qty,0)/spanDays;
+}
+function computeAvgDailyPurchase(filterFn){
+  const txs = data.transactions.filter(t=>t.type==='in' && filterFn(t));
+  if(txs.length===0) return {avg:null,total:0,days:0};
+  const dates = txs.map(t=>new Date(t.date).getTime());
+  const spanDays = Math.max(1, Math.round((Math.max(...dates)-Math.min(...dates))/86400000)+1);
+  const total = txs.reduce((s,t)=>s+t.qty,0);
+  return {avg: total/spanDays, total, days: spanDays};
+}
+function purchasedSince(dateStr, material){
+  const cutoff = new Date(dateStr).getTime();
+  return data.transactions.filter(t=>t.type==='in' && new Date(t.date).getTime()>=cutoff && (!material || t.material===material)).reduce((s,t)=>s+t.qty,0);
+}
+function outputSince(dateStr){
+  const cutoff = new Date(dateStr).getTime();
+  return data.production.filter(p=>new Date(p.date).getTime()>=cutoff).reduce((s,p)=>s+p.output,0);
+}
+
+/* ---- Active Wastage % ---- */
+function getActiveWastage(){
+  const bFlags = data.wastage.zeroFlags.burada, dFlags = data.wastage.zeroFlags.devi;
+  if(bFlags.length && dFlags.length){
+    const lastB = bFlags[bFlags.length-1].date, lastD = dFlags[dFlags.length-1].date;
+    const calibDate = lastB > lastD ? lastB : lastD;
+    const purchased = purchasedSince(calibDate);
+    const output = outputSince(calibDate);
+    if(purchased>0 && output>0){
+      const pct = Math.max(0, Math.min(0.95, 1-(output/purchased)));
+      return {pct, source:'calibrated', since:calibDate};
+    }
+  }
+  const d30 = new Date(Date.now()-29*86400000).toISOString().slice(0,10);
+  const purchased30 = purchasedSince(d30);
+  const output30 = outputSince(d30);
+  if(purchased30>0 && output30>0){
+    const pct = Math.max(0, Math.min(0.95, 1-(output30/purchased30)));
+    return {pct, source:'rolling30', since:null};
+  }
+  return {pct:(data.config.startingWastagePct||30)/100, source:'starting', since:null};
+}
+
+/* ---- Zero-stock flags ---- */
+function openZeroFlagModal(material){
+  zeroFlagMaterial = material;
+  document.getElementById('zeroFlagTitle').textContent = `Flag ${material==='burada'?'Burada':'Devi Wood'} as near-empty`;
+  document.getElementById('zeroFlagModalBackdrop').classList.add('open');
+}
+function closeZeroFlagModal(){ document.getElementById('zeroFlagModalBackdrop').classList.remove('open'); }
+function confirmZeroFlag(resetStock){
+  const date = new Date().toISOString().slice(0,10);
+  data.wastage.zeroFlags[zeroFlagMaterial].push({id:genId(), date, resetStock});
+  if(resetStock){
+    const bal = computeBalance(zeroFlagMaterial);
+    if(bal>0) data.transactions.push({id:genId(), date, type:'out', material:zeroFlagMaterial, category:'zero_reset', qty:bal, rate:null, note:'Stock reset to 0 (near-empty flag)'});
+  }
+  persist(); closeZeroFlagModal(); render();
+}
+function removeZeroFlag(material, id){
+  data.wastage.zeroFlags[material] = data.wastage.zeroFlags[material].filter(f=>f.id!==id);
+  persist(); render();
+}
+function renderZeroFlags(){
+  const rows = [];
+  ['burada','devi'].forEach(m=>{ data.wastage.zeroFlags[m].forEach(f=>rows.push({material:m, ...f})); });
+  rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const body = document.getElementById('zeroFlagBody');
+  if(rows.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="4">No flags logged yet.</td></tr>'; return; }
+  body.innerHTML = rows.map(f=>`<tr>
+    <td>${f.date}</td>
+    <td><span class="mat-tag ${f.material}">${f.material==='burada'?'Burada':'Devi Wood'}</span></td>
+    <td>${f.resetStock?'Yes — reset to 0':'No — stock unchanged'}</td>
+    <td><button class="del-btn" onclick="removeZeroFlag('${f.material}','${f.id}')" title="Remove">✕</button></td>
+  </tr>`).join('');
+}
+
+/* ---- Purchase/Usage/Estimate modal helpers (Stock Check pile estimator) ---- */
+let pileRows = [];
+function openEstimateModal(){
+  document.getElementById('eDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('eNote').value = '';
+  document.getElementById('eMaterial').value = 'devi';
+  pileRows = [{shape:'rect', l:'', wBase:'', wTop:'', h:''}];
+  renderPileRows();
+  document.getElementById('estimateModalBackdrop').classList.add('open');
+}
+function closeEstimateModal(){ document.getElementById('estimateModalBackdrop').classList.remove('open'); }
+function addPileRow(){ pileRows.push({shape:'rect', l:'', wBase:'', wTop:'', h:''}); renderPileRows(); }
+function removePileRow(idx){ pileRows.splice(idx,1); renderPileRows(); }
+function updatePileField(idx, field, value){ pileRows[idx][field] = value; updateEstimateTotal(); }
+function pileVolumeKg(row){
+  const L = parseFloat(row.l)||0, Wb = parseFloat(row.wBase)||0, Wt = parseFloat(row.wTop)||0, H = parseFloat(row.h)||0;
+  if(!L || !Wb || !H) return 0;
+  const volFt3 = row.shape==='rect' ? (L*Wb*H) : (((Wb+Wt)/2)*H*L);
+  const volM3 = volFt3 * 0.0283168;
+  const material = document.getElementById('eMaterial') ? document.getElementById('eMaterial').value : 'devi';
+  const density = material==='devi' ? data.config.deviDensity : data.config.buradaDensity;
+  return volM3 * density;
+}
+function renderPileRows(){
+  document.getElementById('pileRows').innerHTML = pileRows.map((row,idx)=>{
+    const kg = pileVolumeKg(row);
+    return `<div class="pile-row">
+      <div class="pile-row-top"><span>Pile ${idx+1}</span>${pileRows.length>1?`<button class="pile-row-remove" onclick="removePileRow(${idx})">✕ remove</button>`:''}</div>
+      <div class="field" style="margin-bottom:8px;">
+        <label>Shape</label>
+        <select onchange="updatePileField(${idx},'shape',this.value); renderPileRows();">
+          <option value="rect" ${row.shape==='rect'?'selected':''}>Rectangular (same width top &amp; bottom)</option>
+          <option value="taper" ${row.shape==='taper'?'selected':''}>Tapered (wider base, narrower top)</option>
+        </select>
+      </div>
+      <div class="pile-grid">
+        <div class="field"><label>Length (ft)</label><input type="number" min="0" value="${row.l}" oninput="updatePileField(${idx},'l',this.value)"></div>
+        <div class="field"><label>${row.shape==='taper'?'Width at base (ft)':'Width (ft)'}</label><input type="number" min="0" value="${row.wBase}" oninput="updatePileField(${idx},'wBase',this.value)"></div>
+        ${row.shape==='taper' ? `<div class="field"><label>Width at top (ft)</label><input type="number" min="0" value="${row.wTop}" oninput="updatePileField(${idx},'wTop',this.value)"></div>` : ''}
+        <div class="field"><label>Height (ft)</label><input type="number" min="0" value="${row.h}" oninput="updatePileField(${idx},'h',this.value)"></div>
+      </div>
+      <div class="pile-kg">≈ ${Math.round(kg).toLocaleString()} kg</div>
+    </div>`;
+  }).join('');
+  updateEstimateTotal();
+}
+function updateEstimateTotal(){
+  const total = pileRows.reduce((s,row)=>s+pileVolumeKg(row),0);
+  const el = document.getElementById('estimateTotal');
+  if(el) el.textContent = `Total estimated: ${Math.round(total).toLocaleString()} kg across ${pileRows.length} pile${pileRows.length===1?'':'s'}`;
+  document.querySelectorAll('#pileRows .pile-row').forEach((el2,idx)=>{
+    const kgEl = el2.querySelector('.pile-kg');
+    if(kgEl) kgEl.textContent = `≈ ${Math.round(pileVolumeKg(pileRows[idx])).toLocaleString()} kg`;
+  });
+}
+function saveEstimate(){
+  const date = document.getElementById('eDate').value;
+  const material = document.getElementById('eMaterial').value;
+  const note = document.getElementById('eNote').value.trim();
+  if(!date){ alert('Please enter a date.'); return; }
+  const validRows = pileRows.filter(r=>parseFloat(r.l)>0 && parseFloat(r.wBase)>0 && parseFloat(r.h)>0);
+  if(validRows.length===0){ alert('Please enter dimensions for at least one pile.'); return; }
+  const totalKg = validRows.reduce((s,row)=>s+pileVolumeKg(row),0);
+  data.transactions.push({id:genId(), date, type:'estimate', material, category:'physical_estimate', piles:validRows, qty:Math.round(totalKg), rate:null, note});
+  persist(); closeEstimateModal(); render();
+}
+function renderChecks(){
+  const checks = data.transactions.filter(t=>t.type==='estimate').sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const body = document.getElementById('checksBody');
+  if(!body) return;
+  if(checks.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="7">No stock checks logged yet.</td></tr>'; return; }
+  body.innerHTML = checks.map(c=>{
+    const book = computeBalanceAsOf(c.material, c.date);
+    const variance = c.qty - book;
+    const variancePct = book>0 ? (variance/book*100) : 0;
+    const threshold = data.config.varianceThreshold;
+    const flagged = Math.abs(variancePct) > threshold;
+    const matLabel = c.material==='burada' ? 'Burada' : 'Devi Wood';
+    return `<tr>
+      <td>${c.date}</td>
+      <td><span class="mat-tag ${c.material}">${matLabel}</span></td>
+      <td>${c.qty.toLocaleString()}</td>
+      <td>${Math.round(book).toLocaleString()}</td>
+      <td>${variance>=0?'+':''}${Math.round(variance).toLocaleString()} kg (${variancePct>=0?'+':''}${variancePct.toFixed(0)}%)</td>
+      <td><span class="badge ${flagged?'critical':'good'}">${flagged?'FLAGGED':'OK'}</span></td>
+      <td><button class="del-btn" onclick="deleteEntry('${c.id}')" title="Delete">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---- Production log ---- */
+function openProductionModal(){
+  document.getElementById('pDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('pShift').value = 'day';
+  document.getElementById('pProduct').value = 'blaze';
+  document.getElementById('pOutput').value = '';
+  document.getElementById('pBareekSpeed').value = '';
+  document.getElementById('pMotaSpeed').value = '';
+  document.getElementById('pWoodSpeed').value = '';
+  document.getElementById('pNote').value = '';
+  document.getElementById('pWastage').value = (getActiveWastage().pct*100).toFixed(1);
+  onProductionProductChange();
+  document.getElementById('productionModalBackdrop').classList.add('open');
+}
+function closeProductionModal(){ document.getElementById('productionModalBackdrop').classList.remove('open'); }
+function onProductionProductChange(){
+  const product = document.getElementById('pProduct').value;
+  document.getElementById('pBareekSpeedField').style.display = product==='blaze' ? 'block' : 'none';
+  document.getElementById('pMotaSpeedField').style.display = product==='master' ? 'block' : 'none';
+  updateProductionPreview();
+}
+function calcProductionConsumption(output, wastagePct, product, buradaSpeed, woodSpeed){
+  let buradaConsumed=0, woodConsumed=0, totalConsumed=0;
+  if(output>0 && wastagePct<100){
+    totalConsumed = output/(1-wastagePct/100);
+    if(product==='signatureGold'){ woodConsumed = totalConsumed; }
+    else {
+      const totalSpeed = buradaSpeed+woodSpeed;
+      if(totalSpeed>0){ buradaConsumed = totalConsumed*(buradaSpeed/totalSpeed); woodConsumed = totalConsumed*(woodSpeed/totalSpeed); }
+      else { woodConsumed = totalConsumed; }
+    }
+  }
+  return {totalConsumed, buradaConsumed, woodConsumed};
+}
+function updateProductionPreview(){
+  const output = parseFloat(document.getElementById('pOutput').value)||0;
+  const wastagePct = parseFloat(document.getElementById('pWastage').value)||0;
+  const product = document.getElementById('pProduct').value;
+  const buradaSpeed = product==='blaze' ? (parseFloat(document.getElementById('pBareekSpeed').value)||0) : product==='master' ? (parseFloat(document.getElementById('pMotaSpeed').value)||0) : 0;
+  const woodSpeed = parseFloat(document.getElementById('pWoodSpeed').value)||0;
+  const r = calcProductionConsumption(output, wastagePct, product, buradaSpeed, woodSpeed);
+  document.getElementById('productionPreview').innerHTML =
+    `Total RM consumed: <b>${Math.round(r.totalConsumed).toLocaleString()} kg</b><br>` +
+    `Burada: <b>${Math.round(r.buradaConsumed).toLocaleString()} kg</b> &nbsp;|&nbsp; Wood: <b>${Math.round(r.woodConsumed).toLocaleString()} kg</b>`;
+}
+function saveProduction(){
+  const date = document.getElementById('pDate').value;
+  const shift = document.getElementById('pShift').value;
+  const product = document.getElementById('pProduct').value;
+  const output = parseFloat(document.getElementById('pOutput').value);
+  const wastagePct = parseFloat(document.getElementById('pWastage').value);
+  const buradaSpeed = product==='blaze' ? (parseFloat(document.getElementById('pBareekSpeed').value)||0) : product==='master' ? (parseFloat(document.getElementById('pMotaSpeed').value)||0) : 0;
+  const woodSpeed = parseFloat(document.getElementById('pWoodSpeed').value)||0;
+  const note = document.getElementById('pNote').value.trim();
+  if(!date || !output || output<=0){ alert('Please enter a date and a valid output quantity.'); return; }
+  if(isNaN(wastagePct) || wastagePct<0 || wastagePct>=100){ alert('Please enter a valid wastage % (0-99).'); return; }
+  const r = calcProductionConsumption(output, wastagePct, product, buradaSpeed, woodSpeed);
+  const buradaType = product==='blaze' ? 'bareek' : product==='master' ? 'mota' : null;
+  const prodId = genId();
+  data.production.push({id:prodId, date, shift, product, output, wastagePct, buradaType, buradaSpeed, woodSpeed,
+    buradaConsumed:r.buradaConsumed, woodConsumed:r.woodConsumed, note});
+  if(r.buradaConsumed>0) data.transactions.push({id:genId(), date, type:'out', material:'burada', category:'production', product, productionId:prodId, qty:r.buradaConsumed, rate:null, note});
+  if(r.woodConsumed>0) data.transactions.push({id:genId(), date, type:'out', material:'devi', category:'production', product, productionId:prodId, qty:r.woodConsumed, rate:null, note});
+  persist(); closeProductionModal(); render();
+}
+function deleteProductionRun(id){
+  data.production = data.production.filter(p=>p.id!==id);
+  data.transactions = data.transactions.filter(t=>t.productionId!==id);
+  persist(); render();
+}
+function renderProduction(){
+  const runs = [...data.production].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const body = document.getElementById('productionBody');
+  if(runs.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="9">No production runs logged yet.</td></tr>'; return; }
+  const prodNames = {blaze:'Blaze', master:'Master', signatureGold:'Signature Gold'};
+  body.innerHTML = runs.map(p=>`<tr>
+    <td>${p.date}</td>
+    <td>${p.shift==='day'?'Day':'Night'}</td>
+    <td><span class="prod-tag ${p.product}">${prodNames[p.product]}</span></td>
+    <td>${p.output.toLocaleString()}</td>
+    <td>${p.wastagePct.toFixed(1)}%</td>
+    <td>${Math.round(p.buradaConsumed).toLocaleString()}</td>
+    <td>${Math.round(p.woodConsumed).toLocaleString()}</td>
+    <td>${p.note||'—'}</td>
+    <td><button class="del-btn" onclick="deleteProductionRun('${p.id}')" title="Delete">✕</button></td>
+  </tr>`).join('');
+}
+
+/* ---- Cards / breakdowns ---- */
+function siloCard(material, label){
+  const balance = computeBalance(material);
+  const avgUsage = computeAvgDailyUsage(material);
+  const daysCover = avgUsage && avgUsage>0 ? balance/avgUsage : null;
+  const reorder = material==='burada' ? data.config.reorderBurada : data.config.reorderDevi;
+  let statusClass='na', statusLabel='NO DATA';
+  if(daysCover!==null){
+    if(daysCover < reorder/2){ statusClass='critical'; statusLabel='CRITICAL'; }
+    else if(daysCover < reorder){ statusClass='warn'; statusLabel='LOW'; }
+    else { statusClass='good'; statusLabel='HEALTHY'; }
+  }
+  let capacity = Math.max(balance*1.3, (avgUsage||0)*reorder*3, 1000);
+  const fillPct = Math.max(0, Math.min(100, (balance/capacity)*100));
+  const fillColor = statusClass==='critical' ? 'var(--red)' : statusClass==='warn' ? 'var(--amber)' : (statusClass==='good' ? 'var(--blue)' : '#D1D5DB');
+  const sub = material==='burada' ? 'Ali Bhai · Bareek + Mota, mixed delivery' : 'Ali Bhai (Taals) + Akhtar';
+  return `
+    <div class="card-head"><h3>${label}</h3><span class="badge ${statusClass}">${statusLabel}</span></div>
+    <div class="silo-sub">${sub}</div>
+    <div class="silo-body" style="margin-top:10px;">
+      <div class="silo-gauge">
+        <svg width="60" height="130" viewBox="0 0 60 130">
+          <rect x="4" y="4" width="52" height="122" rx="9" fill="#F1F2F4" stroke="var(--border)" stroke-width="2"/>
+          <clipPath id="clip-${material}"><rect x="6" y="6" width="48" height="118" rx="7"/></clipPath>
+          <rect x="6" y="${124 - (118*fillPct/100)}" width="48" height="${118*fillPct/100}" fill="${fillColor}" clip-path="url(#clip-${material})"/>
+        </svg>
+      </div>
+      <div>
+        <div class="readout-kg">${Math.round(balance).toLocaleString()}<span>kg</span></div>
+        <div class="readout-line">
+          Avg usage: <b>${avgUsage!==null ? Math.round(avgUsage).toLocaleString()+' kg/day' : '—'}</b><br>
+          Days of cover: <b>${daysCover!==null ? daysCover.toFixed(1)+' days' : '—'}</b><br>
+          Reorder at: <b>${reorder} days</b>
+        </div>
+      </div>
+    </div>`;
+}
+function purchaseAveragesHTML(compact){
+  const burada = computeAvgDailyPurchase(t=>t.category==='burada');
+  const taal = computeAvgDailyPurchase(t=>t.category==='taal');
+  const akhtar = computeAvgDailyPurchase(t=>t.category==='akhtar');
+  const total = computeAvgDailyPurchase(()=>true);
+  if(compact){
+    return `<div class="stat-big">${total.avg!==null?Math.round(total.avg).toLocaleString():'—'}<span>kg/day total</span></div>
+    <div class="pill-row">
+      <div class="pill p-blue"><div class="pill-dot">Burada</div><div class="pill-num">${burada.avg!==null?Math.round(burada.avg).toLocaleString():'—'}</div><div class="pill-sub">kg/day</div></div>
+      <div class="pill p-green"><div class="pill-dot">Taals</div><div class="pill-num">${taal.avg!==null?Math.round(taal.avg).toLocaleString():'—'}</div><div class="pill-sub">kg/day</div></div>
+      <div class="pill p-amber"><div class="pill-dot">Akhtar</div><div class="pill-num">${akhtar.avg!==null?Math.round(akhtar.avg).toLocaleString():'—'}</div><div class="pill-sub">kg/day</div></div>
+    </div>`;
+  }
+  const cards = [
+    {label:'Burada — Ali Bhai', d:burada, cls:'p-amber'},
+    {label:'Devi Wood — Taals', d:taal, cls:'p-green'},
+    {label:'Devi Wood — Akhtar', d:akhtar, cls:'p-blue'},
+    {label:'Total Raw Material', d:total, cls:'p-blue'}
+  ];
+  return cards.map(c=>`
+    <div class="pill ${c.cls}" style="min-width:0;">
+      <div class="pill-dot">${c.label}</div>
+      <div class="pill-num" style="font-size:20px;">${c.d.avg!==null?Math.round(c.d.avg).toLocaleString():'—'} <span style="font-size:11px;font-weight:500;">kg/day</span></div>
+      <div class="pill-sub">${c.d.total.toLocaleString()} kg over ${c.d.days} day${c.d.days===1?'':'s'}</div>
+    </div>`).join('');
+}
+function sourceBreakdownHTML(){
+  const taalTotals = {}; data.taals.forEach(t=>taalTotals[t.id]=0);
+  let akhtarTotal = 0;
+  data.transactions.filter(t=>t.material==='devi' && t.type==='in').forEach(t=>{
+    if(t.category==='taal'){ taalTotals[t.taalId] = (taalTotals[t.taalId]||0) + t.qty; }
+    else if(t.category==='akhtar'){ akhtarTotal += t.qty; }
+  });
+  const grand = Object.values(taalTotals).reduce((a,b)=>a+b,0) + akhtarTotal;
+  if(grand===0) return '<p style="color:var(--text-dim);font-size:13px;margin:0;">No Devi Wood deliveries logged yet.</p>';
+  let rows='';
+  data.taals.forEach(t=>{ const val=taalTotals[t.id]||0; rows += sourceRow(t.name, val, grand>0?val/grand*100:0, 'var(--green)'); });
+  rows += sourceRow('Akhtar (direct)', akhtarTotal, grand>0?akhtarTotal/grand*100:0, 'var(--blue)');
+  return rows;
+}
+function sourceRow(label, kg, pct, color){
+  return `<div class="source-row">
+    <div class="source-label">${label}</div>
+    <div class="source-bar-wrap"><div class="source-bar" style="width:${pct}%;background:${color};"></div></div>
+    <div class="source-val">${Math.round(kg).toLocaleString()} kg (${pct.toFixed(0)}%)</div>
+  </div>`;
+}
+function buradaTypeBreakdownHTML(){
+  let bareek=0, mota=0;
+  data.production.forEach(p=>{
+    if(p.buradaType==='bareek') bareek+=p.buradaConsumed;
+    else if(p.buradaType==='mota') mota+=p.buradaConsumed;
+  });
+  const grand = bareek+mota;
+  if(grand===0) return '<p style="color:var(--text-dim);font-size:13px;margin:0;">No production runs logged yet.</p>';
+  return sourceRow('Bareek (Blaze)', bareek, grand>0?bareek/grand*100:0, 'var(--red)') +
+         sourceRow('Mota (Master)', mota, grand>0?mota/grand*100:0, 'var(--purple)');
+}
+function wastageOverviewHTML(){
+  const totalPurchased = data.transactions.filter(t=>t.type==='in').reduce((s,t)=>s+t.qty,0);
+  const totalConsumed = data.production.reduce((s,p)=>s+(p.buradaConsumed+p.woodConsumed),0);
+  const w = getActiveWastage();
+  const sourceLabel = w.source==='calibrated' ? `Calibrated since ${w.since}` : w.source==='rolling30' ? 'Rolling 30-day average' : 'Starting estimate — no real data yet';
+  const badgeClass = w.source==='calibrated' ? 'good' : w.source==='rolling30' ? 'warn' : 'na';
+  return `<div class="pill-row">
+    <div class="pill p-blue"><div class="pill-dot">Purchased</div><div class="pill-num">${Math.round(totalPurchased).toLocaleString()}</div><div class="pill-sub">kg all-time</div></div>
+    <div class="pill p-green"><div class="pill-dot">Consumed</div><div class="pill-num">${Math.round(totalConsumed).toLocaleString()}</div><div class="pill-sub">kg all-time</div></div>
+  </div>
+  <div class="stat-big">${(w.pct*100).toFixed(1)}<span>% active wastage</span></div>
+  <span class="badge ${badgeClass}">${sourceLabel}</span>`;
+}
+
+/* ---- Activity Log ---- */
+function renderLog(){
+  let txs = [...data.transactions];
+  if(logRange!=='all'){
+    const cutoff = Date.now() - (parseInt(logRange)-1)*86400000;
+    txs = txs.filter(t=> new Date(t.date).getTime() >= new Date(new Date(cutoff).toDateString()).getTime());
+  }
+  txs.sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const body = document.getElementById('logBody');
+  if(txs.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="11">No entries in this range.</td></tr>'; return; }
+  const prodNames = {blaze:'Blaze', master:'Master', signatureGold:'Signature Gold'};
+  body.innerHTML = txs.map(t=>{
+    const matLabel = t.material==='burada' ? 'Burada' : 'Devi Wood';
+    const matClass = t.material==='burada' ? 'burada' : 'devi';
+    let srcLabel = '—';
+    if(t.category==='taal'){ const taal = data.taals.find(x=>x.id===t.taalId); srcLabel = taal ? taal.name : '(removed Taal)'; }
+    else if(t.category==='akhtar') srcLabel = 'Akhtar';
+    else if(t.category==='burada') srcLabel = 'Ali Bhai (market)';
+    else if(t.category==='consumption') srcLabel = 'Production (manual)';
+    else if(t.category==='physical_estimate') srcLabel = `Physical estimate (${t.piles?t.piles.length:0} pile${t.piles&&t.piles.length===1?'':'s'})`;
+    else if(t.category==='production') srcLabel = `Production (${prodNames[t.product]||t.product})`;
+    else if(t.category==='zero_reset') srcLabel = 'Zero-stock reset';
+    const value = t.rate ? Math.round(t.qty*t.rate) : null;
+    const typeLabel = t.type==='in' ? 'In' : (t.type==='estimate' ? 'Est.' : 'Usage');
+    const typeCls = t.type==='in' ? 'in' : (t.type==='estimate' ? 'estimate' : 'out');
+    return `<tr>
+      <td>${t.date}</td>
+      <td><span class="mat-tag ${matClass}">${matLabel}</span></td>
+      <td><span class="type-tag ${typeCls}">${typeLabel}</span></td>
+      <td><span class="src-tag">${srcLabel}</span></td>
+      <td>${t.gross!==undefined?t.gross.toLocaleString():'—'}</td>
+      <td>${t.tare!==undefined?t.tare.toLocaleString():'—'}</td>
+      <td>${Math.round(t.qty).toLocaleString()}</td>
+      <td>${t.rate?t.rate:'—'}</td>
+      <td>${value!==null?value.toLocaleString():'—'}</td>
+      <td>${t.note||'—'}</td>
+      <td><button class="del-btn" onclick="deleteEntry('${t.id}')" title="Delete">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function render(){
+  document.getElementById('siloBuradaCard').innerHTML = siloCard('burada','Burada (Bareek + Mota)');
+  document.getElementById('siloDeviCard').innerHTML = siloCard('devi','Devi Wood');
+  document.getElementById('overviewAverages').innerHTML = purchaseAveragesHTML(true);
+  document.getElementById('wastageOverviewCard').innerHTML = wastageOverviewHTML();
+  document.getElementById('buradaTypeBreakdown').innerHTML = buradaTypeBreakdownHTML();
+  document.getElementById('sourceBreakdownOverview').innerHTML = sourceBreakdownHTML();
+  document.getElementById('sourceBreakdownFull').innerHTML = sourceBreakdownHTML();
+  document.getElementById('purchaseAverages').innerHTML = purchaseAveragesHTML(false);
+  document.getElementById('taalManage').innerHTML = data.taals.map(t=>
+    `<div class="taal-chip">${t.name}<button onclick="removeTaal('${t.id}')" title="Remove">✕</button></div>`
+  ).join('') || '<span style="color:var(--text-faint);font-size:12px;">No Taals added yet — add one below.</span>';
+  renderLog();
+  renderChecks();
+  renderZeroFlags();
+  renderProduction();
+}
+
+function exportSnapshot(){
+  const btn = event && event.target ? event.target : null;
+  const activeEl = document.querySelector('.page.active');
+  if(!activeEl){ alert('Nothing to export.'); return; }
+  const pageName = (document.querySelector('.nav-item.active') || {}).dataset ? document.querySelector('.nav-item.active').dataset.page : 'overview';
+  const original = btn ? btn.textContent : null;
+  if(btn){ btn.textContent = 'Exporting…'; btn.disabled = true; }
+  html2canvas(activeEl, {
+    backgroundColor: '#F3F5F8',
+    scale: 2,
+    useCORS: true
+  }).then(canvas => {
+    const link = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,10);
+    link.download = `wpf-inventory-${pageName}-${stamp}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    if(btn){ btn.textContent = original; btn.disabled = false; }
+  }).catch(err => {
+    console.error('Snapshot export failed', err);
+    alert('Snapshot export failed. Please try again.');
+    if(btn){ btn.textContent = original; btn.disabled = false; }
+  });
+}
+
+/* --- Simple password gate ---
+   Change the password below to whatever you'd like.
+   NOTE: this is a soft gate (keeps casual visitors out) — not real security,
+   since the password is visible in the page's source code. */
+const LOCK_PASSWORD = 'WPF2026';
+const LOCK_SESSION_KEY = 'wpf-inventory-unlocked';
+
+function checkLockPassword(){
+  const input = document.getElementById('lockInput');
+  const err = document.getElementById('lockError');
+  if(input.value === LOCK_PASSWORD){
+    try{ localStorage.setItem(LOCK_SESSION_KEY, 'yes'); }catch(e){}
+    unlockApp();
+  }else{
+    err.textContent = 'Incorrect password. Please try again.';
+    input.value = '';
+    input.focus();
+  }
+}
+
+function unlockApp(){
+  document.getElementById('lockScreen').style.display = 'none';
+  document.querySelector('.app').style.display = 'flex';
+  loadData();
+}
+
+(function initLock(){
+  let alreadyUnlocked = false;
+  try{ alreadyUnlocked = localStorage.getItem(LOCK_SESSION_KEY) === 'yes'; }catch(e){}
+  if(alreadyUnlocked){
+    unlockApp();
+  }else{
+    document.getElementById('lockInput').focus();
+  }
+})();
+</script>
+</body>
+</html>

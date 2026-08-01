@@ -698,6 +698,14 @@ function computeBalanceAsOf(material, dateStr){
   data.transactions.filter(t=>t.material===material && (t.type==='in'||t.type==='out') && new Date(t.date).getTime() <= cutoff).forEach(t=>{ bal += t.type==='in' ? t.qty : -t.qty; });
   return bal;
 }
+/* Same as computeBalanceAsOf but skips zero_reset entries — used when checking a Stock Check or
+   near-empty flag against the book, since a reset entry would otherwise mask the very gap it's covering. */
+function computeBalanceAsOfExcl(material, dateStr){
+  let bal = material==='burada' ? data.config.buradaOpen : data.config.deviOpen;
+  const cutoff = new Date(dateStr).getTime();
+  data.transactions.filter(t=>t.material===material && (t.type==='in'||t.type==='out') && t.category!=='zero_reset' && new Date(t.date).getTime() <= cutoff).forEach(t=>{ bal += t.type==='in' ? t.qty : -t.qty; });
+  return bal;
+}
 function computeAvgDailyUsage(material){
   const cons = data.transactions.filter(t=>t.material===material && t.type==='out');
   if(cons.length===0) return null;
@@ -743,7 +751,7 @@ function trueConsumedSince(dateStr){
     let extraGap = 0;
     if(physicalPoints.length){
       const latest = physicalPoints[physicalPoints.length-1];
-      const book = computeBalanceAsOf(material, latest.date);
+      const book = computeBalanceAsOfExcl(material, latest.date);
       extraGap = Math.max(0, book - latest.qty);
     }
     total += logged + extraGap;
@@ -833,7 +841,7 @@ function renderChecks(){
   if(!body) return;
   if(checks.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="7">No stock checks logged yet.</td></tr>'; return; }
   body.innerHTML = checks.map(c=>{
-    const book = computeBalanceAsOf(c.material, c.date);
+    const book = computeBalanceAsOfExcl(c.material, c.date);
     const variance = c.qty - book;
     const variancePct = book>0 ? (variance/book*100) : 0;
     const threshold = data.config.varianceThreshold;

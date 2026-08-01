@@ -1043,13 +1043,13 @@ function buradaTypeBreakdownHTML(){
          sourceRow('Mota (Master)', mota, grand>0?mota/grand*100:0, 'var(--purple)');
 }
 function wastageOverviewHTML(){
-  const totalPurchased = data.transactions.filter(t=>t.type==='in').reduce((s,t)=>s+t.qty,0);
+  const totalProduced = data.production.reduce((s,p)=>s+p.output,0);
   const totalConsumed = data.production.reduce((s,p)=>s+(p.buradaConsumed+p.woodConsumed),0);
   const w = getActiveWastage();
   const sourceLabel = w.source==='calibrated' ? `Calibrated since ${w.since}` : w.source==='rolling30' ? 'Rolling 30-day average' : 'Starting estimate — no real data yet';
   const badgeClass = w.source==='calibrated' ? 'good' : w.source==='rolling30' ? 'warn' : 'na';
   return `<div class="pill-row">
-    <div class="pill p-blue"><div class="pill-dot">Purchased</div><div class="pill-num">${Math.round(totalPurchased).toLocaleString()}</div><div class="pill-sub">kg all-time</div></div>
+    <div class="pill p-blue"><div class="pill-dot">Produced</div><div class="pill-num">${Math.round(totalProduced).toLocaleString()}</div><div class="pill-sub">kg all-time</div></div>
     <div class="pill p-green"><div class="pill-dot">Consumed</div><div class="pill-num">${Math.round(totalConsumed).toLocaleString()}</div><div class="pill-sub">kg all-time</div></div>
   </div>
   <div class="stat-big">${(w.pct*100).toFixed(1)}<span>% active wastage</span></div>

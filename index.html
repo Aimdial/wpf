@@ -90,6 +90,19 @@
   .badge.critical{background:var(--red-soft);color:var(--red);}
   .badge.na{background:#F1F2F4;color:var(--text-faint);}
   .badge.info{background:var(--purple-soft);color:var(--purple);}
+  .badge.unload{background:#FEF3C7;color:#B45309;}
+  .runway-tile{border:1px solid var(--border);border-radius:10px;padding:14px;background:#FAFBFC;}
+  .runway-tile-name{font-size:12.5px;font-weight:700;color:var(--text-dim);margin-bottom:6px;}
+  .runway-tile-tons{font-family:var(--mono);font-size:22px;font-weight:700;color:#1a1a1a;}
+  .runway-tile-tons span{font-size:12px;font-weight:500;color:var(--text-faint);margin-left:4px;}
+  .runway-tile-days{font-family:var(--mono);font-size:13px;color:var(--text-dim);margin-top:2px;}
+  .stockout-alert{background:var(--red-soft);border:1.5px solid var(--red);border-radius:10px;padding:14px 16px;margin-bottom:18px;}
+  .stockout-alert-title{font-size:14px;font-weight:800;color:var(--red);margin-bottom:4px;}
+  .stockout-alert-body{font-size:12.5px;color:#7a1f1f;line-height:1.5;}
+  .pipeline-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:#FAFBFC;}
+  .pipeline-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;}
+  .pipeline-card-meta{font-size:12px;color:var(--text-dim);margin-bottom:2px;}
+  .pipeline-card-actions{display:flex;gap:8px;margin-top:10px;}
 
   .silo-body{display:flex;gap:16px;align-items:center;}
   .silo-gauge{width:60px;height:130px;flex-shrink:0;}
@@ -219,6 +232,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>
       Purchases &amp; Sources
     </div>
+    <div class="nav-item" data-page="pipeline" onclick="showPage('pipeline')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/><path d="M9 12h2"/></svg>
+      Truck Pipeline
+    </div>
     <div class="nav-item" data-page="production" onclick="showPage('production')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V10l5 3v-3l5 3v-3l5 3v8H3z"/><path d="M3 21h18"/></svg>
       Production
@@ -250,11 +267,13 @@
           <button class="btn-secondary" onclick="exportSnapshot()">⬇ Export Snapshot</button>
           <button class="btn-secondary" onclick="openModal('in')">+ Log Purchase / Delivery</button>
           <button class="btn-primary" onclick="openProductionModal()">+ Log Production</button>
+          <button class="btn-secondary" onclick="openSaleModal()">+ Log Sale</button>
         </div>
       </div>
 
       <!-- OVERVIEW -->
       <div class="page active" id="page-overview">
+        <div id="stockoutAlertBanner"></div>
         <div class="grid grid-3" style="margin-bottom:18px;">
           <div class="card" id="siloBuradaCard"></div>
           <div class="card" id="siloDeviCard"></div>
@@ -264,7 +283,16 @@
             <div class="card-footer"><a onclick="showPage('sources')">View sources</a></div>
           </div>
         </div>
-        <div class="grid grid-2" style="margin-bottom:18px;">
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3>Production Runway — At Current Stock</h3></div>
+          <div id="runwayOverviewCard"></div>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3>Active Machine Efficiency</h3></div>
+          <div id="machineEfficiencyOverviewCard"></div>
+          <div class="card-footer"><a onclick="showPage('production')">View production log</a></div>
+        </div>
+        <div class="grid grid-3" style="margin-bottom:18px;">
           <div class="card">
             <div class="card-head"><h3>Active Wastage</h3></div>
             <div id="wastageOverviewCard"></div>
@@ -275,6 +303,21 @@
             <div id="buradaTypeBreakdown"></div>
             <div class="card-footer"><a onclick="showPage('production')">View production log</a></div>
           </div>
+          <div class="card">
+            <div class="card-head"><h3>Production This Month</h3></div>
+            <div id="monthProductionBreakdown"></div>
+            <div class="card-footer"><a onclick="showPage('production')">View production log</a></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3>Finished Goods (Bags in Stock)</h3></div>
+          <div id="finishedGoodsOverviewCard"></div>
+          <div class="card-footer"><a onclick="openSaleModal()">+ Log Sale</a></div>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3>Trucks in Pipeline</h3></div>
+          <div id="pipelineOverviewCard"></div>
+          <div class="card-footer"><a onclick="showPage('pipeline')">View full pipeline</a></div>
         </div>
         <div class="card">
           <div class="card-head"><h3>Devi Wood — Source Breakdown</h3></div>
@@ -302,6 +345,27 @@
         </div>
       </div>
 
+      <!-- TRUCK PIPELINE -->
+      <div class="page" id="page-pipeline">
+        <div class="topbar" style="margin-bottom:16px;">
+          <p style="margin:0;color:var(--text-dim);font-size:13px;max-width:620px;">Log a truck when loading starts at a Taal or via Akhtar, so the team has advance notice before it physically arrives. Trucks that show up without being logged here can still be entered directly using <strong>+ Log Purchase / Delivery</strong>.</p>
+          <button class="btn-primary" onclick="openPipelineModal()">+ Log Truck (Loading Started)</button>
+        </div>
+        <div class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3>Trucks Currently in Pipeline</h3></div>
+          <div id="pipelinePendingList"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Pipeline History</h3></div>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Plate</th><th>Driver</th><th>Truck Type</th><th>Source</th><th>Est. Load (kg)</th><th>Loading Start</th><th>Departed</th><th>Est. Delivery</th><th>Status</th><th></th></tr></thead>
+            <tbody id="pipelineHistoryBody"></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
       <!-- PRODUCTION -->
       <div class="page" id="page-production">
         <div class="topbar" style="margin-bottom:16px;">
@@ -311,8 +375,17 @@
           <div class="card-head"><h3>Production Runs</h3></div>
           <div class="table-scroll">
           <table>
-            <thead><tr><th>Date</th><th>Shift</th><th>Product</th><th>Output (kg)</th><th>Wastage %</th><th>Burada used (kg)</th><th>Wood used (kg)</th><th>Note</th><th></th></tr></thead>
+            <thead><tr><th>Date</th><th>Shift</th><th>Product</th><th>Output (kg)</th><th>Hours Run</th><th>Reason</th><th>Wastage %</th><th>Burada used (kg)</th><th>Wood used (kg)</th><th>Note</th><th></th></tr></thead>
             <tbody id="productionBody"></tbody>
+          </table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:18px;">
+          <div class="card-head"><h3>Finished Goods — Bags Log</h3></div>
+          <div class="table-scroll">
+          <table>
+            <thead><tr><th>Date</th><th>Product</th><th>Type</th><th>Bags</th><th>Note</th><th></th></tr></thead>
+            <tbody id="finishedGoodsBody"></tbody>
           </table>
           </div>
         </div>
@@ -381,6 +454,10 @@
             <div class="field"><label>Reorder threshold — Devi Wood (days)</label><input type="number" id="cfgReorderDevi" min="1" step="0.5"></div>
             <div class="field"><label>Stock check — flag variance above (%)</label><input type="number" id="cfgVarianceThreshold" min="1" step="1"></div>
             <div class="field"><label>Starting wastage % (used until real data exists)</label><input type="number" id="cfgStartingWastage" min="0" max="90" step="1"></div>
+            <div class="field"><label>Signature Gold — starting efficiency (kg/hour)</label><input type="number" id="cfgEffSignatureGold" min="0" step="10"></div>
+            <div class="field"><label>Blaze — starting efficiency (kg/hour)</label><input type="number" id="cfgEffBlaze" min="0" step="10"></div>
+            <div class="field"><label>Master — starting efficiency (kg/hour)</label><input type="number" id="cfgEffMaster" min="0" step="10"></div>
+            <div class="field"><label>Default bag weight (kg)</label><input type="number" id="cfgDefaultBagWeight" min="1" step="1"></div>
           </div>
           <button class="btn-primary" onclick="saveConfig()">Save settings</button>
           <button class="btn-ghost" style="margin-left:14px;" onclick="resetAll()">Reset all data</button>
@@ -419,6 +496,65 @@
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">Cancel</button>
       <button class="btn-primary" onclick="saveEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRUCK PIPELINE MODAL -->
+<div class="modal-backdrop" id="pipelineModalBackdrop">
+  <div class="modal" style="max-width:480px;">
+    <h3>Log Truck — Loading Started</h3>
+    <div class="field"><label>Truck Number Plate</label><input type="text" id="tpPlate" placeholder="e.g. KHI-4521"></div>
+    <div class="field"><label>Driver Name</label><input type="text" id="tpDriverName" placeholder="e.g. Kashan"></div>
+    <div class="field"><label>Driver Phone</label><input type="text" id="tpDriverPhone" placeholder="e.g. 0300-1234567"></div>
+    <div class="field"><label>Truck Type</label><input type="text" id="tpTruckType" placeholder="e.g. Mazda, Suzuki, 40ft Container"></div>
+    <div class="field"><label>Source</label>
+      <select id="tpSource" onchange="onPipelineSourceChange()">
+        <option value="taal">Devi Wood - Ali (Taal)</option>
+        <option value="akhtar">Devi Wood - Akhtar</option>
+      </select>
+    </div>
+    <div class="field" id="tpTaalField"><label>Taal</label><select id="tpTaal"></select></div>
+    <div class="field"><label>Estimated Load (kg)</label><input type="number" id="tpEstLoad" min="0" step="1" placeholder="e.g. 12000"></div>
+    <div class="field"><label>Loading Start Time</label><input type="datetime-local" id="tpLoadingStart"></div>
+    <div class="field"><label>Estimated Delivery Time</label><input type="datetime-local" id="tpEstDelivery"></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="tpNote"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closePipelineModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePipelineTruck()">Save to Pipeline</button>
+    </div>
+  </div>
+</div>
+
+<!-- PIPELINE STAGE TRANSITION MODAL (Departed / Arrived / Unloading) -->
+<div class="modal-backdrop" id="pipelineStageModalBackdrop">
+  <div class="modal" style="max-width:380px;">
+    <h3 id="pipelineStageTitle">Mark as Departed</h3>
+    <p id="pipelineStageSummary" style="font-size:12.5px;color:var(--text-dim);margin:-6px 0 14px;"></p>
+    <div class="field"><label id="pipelineStageTimeLabel">Departure Time</label><input type="datetime-local" id="pipelineStageTime"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closePipelineStageModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePipelineStage()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONVERT PIPELINE TRUCK TO DELIVERY MODAL -->
+<div class="modal-backdrop" id="pipelineConvertModalBackdrop">
+  <div class="modal">
+    <h3>Convert to Delivery</h3>
+    <p id="pipelineConvertSummary" style="font-size:12.5px;color:var(--text-dim);margin:-6px 0 14px;"></p>
+    <div class="field"><label>Date</label><input type="date" id="pcDate"></div>
+    <div class="field" id="pcTaalField"><label>Taal</label><select id="pcTaal"></select></div>
+    <div class="field" id="pcGrossField"><label>Gross weight — loaded (kg)</label><input type="number" id="pcGross" min="0" step="1" oninput="updatePipelineConvertPreview()"></div>
+    <div class="field" id="pcTareField"><label>Tare weight — empty after unload (kg)</label><input type="number" id="pcTare" min="0" step="1" oninput="updatePipelineConvertPreview()"></div>
+    <div class="net-preview" id="pcNetPreview" style="display:none;">Net delivered: — kg</div>
+    <div class="field" id="pcQtyField" style="display:none;"><label>Quantity (kg)</label><input type="number" id="pcQty" min="0" step="1"></div>
+    <div class="field"><label>Rate (PKR/kg)</label><input type="number" id="pcRate" min="0" step="0.5"></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="pcNote"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closePipelineConvertModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePipelineConvert()">Save Delivery</button>
     </div>
   </div>
 </div>
@@ -480,10 +616,44 @@
       <div class="field" id="pWoodSpeedField"><label>Wood conveyor speed</label><input type="number" id="pWoodSpeed" min="0" step="0.5" oninput="updateProductionPreview()"></div>
     </div>
     <div class="net-preview" id="productionPreview">Total RM consumed: — kg</div>
+    <div class="field"><label>Hours Run (shift is normally 10 hours)</label><input type="number" id="pHoursRun" min="0" max="10" step="0.5" value="10" oninput="onHoursRunChange()"></div>
+    <div class="field" id="pReasonField" style="display:none;">
+      <label>Reason for shortfall</label>
+      <select id="pReason" onchange="onReasonChange()">
+        <option value="raw_material_shortage">Raw Material Shortage</option>
+        <option value="machine_malfunction">Machine Malfunction</option>
+        <option value="power_outage">Power Outage</option>
+        <option value="scheduled_maintenance">Scheduled Maintenance</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="field" id="pReasonNoteField" style="display:none;"><label>Reason detail</label><input type="text" id="pReasonNote" placeholder="Describe what happened"></div>
+    <div class="field"><label>Bags Packed (auto-suggested, editable)</label><input type="number" id="pBags" min="0" step="1"></div>
     <div class="field"><label>Note (optional)</label><input type="text" id="pNote" placeholder="e.g. customer, batch notes"></div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeProductionModal()">Cancel</button>
       <button class="btn-primary" onclick="saveProduction()">Save Run</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG SALE MODAL (Finished Goods) -->
+<div class="modal-backdrop" id="saleModalBackdrop">
+  <div class="modal" style="max-width:380px;">
+    <h3>Log Sale (Finished Goods)</h3>
+    <div class="field"><label>Date</label><input type="date" id="sDate"></div>
+    <div class="field"><label>Product</label>
+      <select id="sProduct">
+        <option value="blaze">Blaze</option>
+        <option value="master">Master</option>
+        <option value="signatureGold">Signature Gold</option>
+      </select>
+    </div>
+    <div class="field"><label>Bags Sold</label><input type="number" id="sBags" min="0" step="1"></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="sNote" placeholder="e.g. customer name"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSaleModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveSale()">Log Sale</button>
     </div>
   </div>
 </div>
@@ -514,8 +684,9 @@ const storage = (window.storage) ? window.storage : {
 
 const defaultData = {
   config:{ buradaOpen:0, deviOpen:0, buradaRate:16, aliDeviRate:17.5, akhtarRate:17.5, reorderBurada:3, reorderDevi:3,
-    deviDensity:400, buradaDensity:250, varianceThreshold:15, startingWastagePct:30 },
-  taals:[], transactions:[], production:[],
+    deviDensity:400, buradaDensity:250, varianceThreshold:15, startingWastagePct:30,
+    effSignatureGold:1250, effBlaze:1650, effMaster:1650, defaultBagWeight:40 },
+  taals:[], transactions:[], production:[], pipeline:[], finishedGoods:[],
   wastage:{ zeroFlags:{ burada:[], devi:[] } }
 };
 
@@ -526,9 +697,15 @@ async function loadData(){
   }catch(e){ data = JSON.parse(JSON.stringify(defaultData)); }
   if(!data.taals) data.taals = [];
   if(!data.production) data.production = [];
+  if(!data.pipeline) data.pipeline = [];
+  if(!data.finishedGoods) data.finishedGoods = [];
   if(!data.wastage) data.wastage = { zeroFlags:{ burada:[], devi:[] } };
   if(!data.wastage.zeroFlags) data.wastage.zeroFlags = { burada:[], devi:[] };
   if(data.config.startingWastagePct===undefined) data.config.startingWastagePct = 30;
+  if(data.config.effSignatureGold===undefined) data.config.effSignatureGold = 1250;
+  if(data.config.effBlaze===undefined) data.config.effBlaze = 1650;
+  if(data.config.effMaster===undefined) data.config.effMaster = 1650;
+  if(data.config.defaultBagWeight===undefined) data.config.defaultBagWeight = 40;
   document.getElementById('statusMsg').style.display='none';
   document.getElementById('mainContent').style.display='block';
   populateSettingsFields();
@@ -545,6 +722,7 @@ function showPage(name){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.page===name));
   const titles = {overview:['Overview','Burada & Devi Wood — Ali Bhai (Taals) + Akhtar'],
     sources:['Purchases & Sources','Taal-level and supplier-level breakdown'],
+    pipeline:['Truck Pipeline','Trucks logged from loading start through arrival'],
     production:['Production','Log runs — auto-calculates RM consumption from output, wastage % and conveyor speeds'],
     log:['Activity Log','Every logged delivery, usage and production entry'],
     checks:['Stock Check','Pile-based physical estimate, and wastage calibration'],
@@ -569,6 +747,10 @@ function populateSettingsFields(){
   document.getElementById('cfgReorderDevi').value = data.config.reorderDevi;
   document.getElementById('cfgVarianceThreshold').value = data.config.varianceThreshold;
   document.getElementById('cfgStartingWastage').value = data.config.startingWastagePct;
+  document.getElementById('cfgEffSignatureGold').value = data.config.effSignatureGold;
+  document.getElementById('cfgEffBlaze').value = data.config.effBlaze;
+  document.getElementById('cfgEffMaster').value = data.config.effMaster;
+  document.getElementById('cfgDefaultBagWeight').value = data.config.defaultBagWeight;
 }
 function saveConfig(){
   data.config.buradaOpen = parseFloat(document.getElementById('cfgBuradaOpen').value)||0;
@@ -580,6 +762,10 @@ function saveConfig(){
   data.config.reorderDevi = parseFloat(document.getElementById('cfgReorderDevi').value)||3;
   data.config.varianceThreshold = parseFloat(document.getElementById('cfgVarianceThreshold').value)||15;
   data.config.startingWastagePct = parseFloat(document.getElementById('cfgStartingWastage').value)||30;
+  data.config.effSignatureGold = parseFloat(document.getElementById('cfgEffSignatureGold').value)||1250;
+  data.config.effBlaze = parseFloat(document.getElementById('cfgEffBlaze').value)||1650;
+  data.config.effMaster = parseFloat(document.getElementById('cfgEffMaster').value)||1650;
+  data.config.defaultBagWeight = parseFloat(document.getElementById('cfgDefaultBagWeight').value)||40;
   persist(); render();
 }
 function resetAll(){
@@ -626,8 +812,8 @@ function openModal(mode){
   document.getElementById('modalBackdrop').classList.add('open');
 }
 function closeModal(){ document.getElementById('modalBackdrop').classList.remove('open'); }
-function populateTaalSelect(){
-  const sel = document.getElementById('mTaal');
+function populateTaalSelect(elId){
+  const sel = document.getElementById(elId || 'mTaal');
   sel.innerHTML = data.taals.map(t=>`<option value="${t.id}">${t.name}</option>`).join('') || '<option value="">No Taals added yet</option>';
 }
 function onCategoryChange(){
@@ -685,6 +871,269 @@ function saveEntry(){
 }
 function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function deleteEntry(id){ data.transactions = data.transactions.filter(t=>t.id!==id); persist(); render(); }
+
+/* ---- Truck Pipeline ---- */
+let convertingPipelineId = null;
+function openPipelineModal(){
+  document.getElementById('tpPlate').value = '';
+  document.getElementById('tpDriverName').value = '';
+  document.getElementById('tpDriverPhone').value = '';
+  document.getElementById('tpTruckType').value = '';
+  document.getElementById('tpSource').value = 'taal';
+  document.getElementById('tpEstLoad').value = '';
+  document.getElementById('tpNote').value = '';
+  const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('tpLoadingStart').value = nowLocal;
+  document.getElementById('tpEstDelivery').value = '';
+  populateTaalSelect('tpTaal');
+  onPipelineSourceChange();
+  document.getElementById('pipelineModalBackdrop').classList.add('open');
+}
+function closePipelineModal(){ document.getElementById('pipelineModalBackdrop').classList.remove('open'); }
+function onPipelineSourceChange(){
+  const src = document.getElementById('tpSource').value;
+  document.getElementById('tpTaalField').style.display = src==='taal' ? 'block' : 'none';
+}
+function savePipelineTruck(){
+  const plate = document.getElementById('tpPlate').value.trim();
+  const driverName = document.getElementById('tpDriverName').value.trim();
+  const driverPhone = document.getElementById('tpDriverPhone').value.trim();
+  const truckType = document.getElementById('tpTruckType').value.trim();
+  const source = document.getElementById('tpSource').value;
+  const taalId = source==='taal' ? document.getElementById('tpTaal').value : null;
+  const estLoad = parseFloat(document.getElementById('tpEstLoad').value)||0;
+  const loadingStart = document.getElementById('tpLoadingStart').value;
+  const estDelivery = document.getElementById('tpEstDelivery').value;
+  const note = document.getElementById('tpNote').value.trim();
+  if(!plate){ alert('Please enter the truck number plate.'); return; }
+  if(source==='taal' && !taalId){ alert('Please add and select a Taal first.'); return; }
+  if(!loadingStart){ alert('Please enter the loading start time.'); return; }
+  if(!estDelivery){ alert('Please enter the estimated delivery time.'); return; }
+  data.pipeline.push({id:genId(), plate, driverName, driverPhone, truckType, source, taalId, estLoad,
+    loadingStart, estDelivery, note, status:'pending', createdAt:new Date().toISOString()});
+  persist(); closePipelineModal(); render();
+}
+function cancelPipelineTruck(id){
+  if(!confirm('Cancel this truck from the pipeline?')) return;
+  const t = data.pipeline.find(p=>p.id===id);
+  if(t) t.status = 'cancelled';
+  persist(); render();
+}
+function deletePipelineEntry(id){
+  data.pipeline = data.pipeline.filter(p=>p.id!==id);
+  persist(); render();
+}
+let stagingPipelineId = null, stagingNextStatus = null, stagingTimeField = null;
+function openPipelineStageModal(id, nextStatus, timeField, title, timeLabel){
+  const t = data.pipeline.find(p=>p.id===id);
+  if(!t) return;
+  stagingPipelineId = id; stagingNextStatus = nextStatus; stagingTimeField = timeField;
+  document.getElementById('pipelineStageTitle').textContent = title;
+  document.getElementById('pipelineStageTimeLabel').textContent = timeLabel;
+  document.getElementById('pipelineStageSummary').textContent = `${t.plate} — ${t.driverName || 'Driver n/a'} — ${pipelineSourceLabel(t)}`;
+  const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('pipelineStageTime').value = nowLocal;
+  document.getElementById('pipelineStageModalBackdrop').classList.add('open');
+}
+function closePipelineStageModal(){
+  stagingPipelineId = null; stagingNextStatus = null; stagingTimeField = null;
+  document.getElementById('pipelineStageModalBackdrop').classList.remove('open');
+}
+function savePipelineStage(){
+  const t = data.pipeline.find(p=>p.id===stagingPipelineId);
+  if(!t) return;
+  const val = document.getElementById('pipelineStageTime').value;
+  if(!val){ alert('Please enter the time.'); return; }
+  t[stagingTimeField] = val;
+  t.status = stagingNextStatus;
+  persist(); closePipelineStageModal(); render();
+}
+function pipelineSourceLabel(t){
+  if(t.source==='akhtar') return 'Akhtar';
+  const taal = data.taals.find(x=>x.id===t.taalId);
+  return taal ? taal.name : '(removed Taal)';
+}
+function pipelineCountdownInfo(t){
+  const now = Date.now();
+  const est = new Date(t.estDelivery).getTime();
+  const diffMs = est - now;
+  const overdue = diffMs < 0;
+  const absMin = Math.round(Math.abs(diffMs)/60000);
+  const h = Math.floor(absMin/60), m = absMin%60;
+  const text = h>0 ? `${h}h ${m}m` : `${m}m`;
+  return { overdue, text: overdue ? `${text} overdue` : `Arriving in ${text}` };
+}
+function openPipelineConvertModal(id){
+  const t = data.pipeline.find(p=>p.id===id);
+  if(!t) return;
+  convertingPipelineId = id;
+  document.getElementById('pipelineConvertSummary').textContent =
+    `${t.plate} — ${t.driverName || 'Driver n/a'} — ${pipelineSourceLabel(t)} — est. ${Math.round(t.estLoad).toLocaleString()} kg`;
+  document.getElementById('pcDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('pcNote').value = t.note || '';
+  document.getElementById('pcGross').value = '';
+  document.getElementById('pcTare').value = '';
+  document.getElementById('pcQty').value = '';
+  populateTaalSelect('pcTaal');
+  if(t.source==='taal'){
+    document.getElementById('pcTaalField').style.display = 'block';
+    document.getElementById('pcGrossField').style.display = 'block';
+    document.getElementById('pcTareField').style.display = 'block';
+    document.getElementById('pcNetPreview').style.display = 'block';
+    document.getElementById('pcQtyField').style.display = 'none';
+    document.getElementById('pcTaal').value = t.taalId;
+    document.getElementById('pcRate').value = data.config.aliDeviRate;
+  } else {
+    document.getElementById('pcTaalField').style.display = 'none';
+    document.getElementById('pcGrossField').style.display = 'none';
+    document.getElementById('pcTareField').style.display = 'none';
+    document.getElementById('pcNetPreview').style.display = 'none';
+    document.getElementById('pcQtyField').style.display = 'block';
+    document.getElementById('pcQty').value = t.estLoad || '';
+    document.getElementById('pcRate').value = data.config.akhtarRate;
+  }
+  updatePipelineConvertPreview();
+  document.getElementById('pipelineConvertModalBackdrop').classList.add('open');
+}
+function closePipelineConvertModal(){
+  convertingPipelineId = null;
+  document.getElementById('pipelineConvertModalBackdrop').classList.remove('open');
+}
+function updatePipelineConvertPreview(){
+  const gross = parseFloat(document.getElementById('pcGross').value)||0;
+  const tare = parseFloat(document.getElementById('pcTare').value)||0;
+  const net = gross - tare;
+  document.getElementById('pcNetPreview').textContent = `Net delivered: ${net>0?net.toLocaleString():0} kg`;
+}
+function savePipelineConvert(){
+  const t = data.pipeline.find(p=>p.id===convertingPipelineId);
+  if(!t) return;
+  const date = document.getElementById('pcDate').value;
+  const note = document.getElementById('pcNote').value.trim();
+  if(!date){ alert('Please enter a date.'); return; }
+  if(t.source==='taal'){
+    const taalId = document.getElementById('pcTaal').value;
+    if(!taalId){ alert('Please select a Taal.'); return; }
+    const gross = parseFloat(document.getElementById('pcGross').value);
+    const tare = parseFloat(document.getElementById('pcTare').value);
+    const rate = parseFloat(document.getElementById('pcRate').value)||0;
+    if(!gross || tare===''||isNaN(tare) || gross<=tare){ alert('Please enter valid Gross and Tare weights (Gross must exceed Tare).'); return; }
+    data.transactions.push({id:genId(), date, type:'in', material:'devi', category:'taal', taalId, gross, tare, qty:gross-tare, rate, note: note || `Pipeline delivery — ${t.plate}`, pipelineId:t.id});
+  } else {
+    const qty = parseFloat(document.getElementById('pcQty').value);
+    const rate = parseFloat(document.getElementById('pcRate').value)||0;
+    if(!qty || qty<=0){ alert('Please enter a valid quantity.'); return; }
+    data.transactions.push({id:genId(), date, type:'in', material:'devi', category:'akhtar', qty, rate, note: note || `Pipeline delivery — ${t.plate}`, pipelineId:t.id});
+  }
+  t.status = 'delivered';
+  t.deliveredDate = date;
+  persist(); closePipelineConvertModal(); render();
+}
+function pipelineStageBadge(status){
+  if(status==='pending') return `<span class="badge na">Loading</span>`;
+  if(status==='departed') return `<span class="badge info">En Route</span>`;
+  if(status==='arrived') return `<span class="badge warn">Arrived — Queued</span>`;
+  if(status==='unloading') return `<span class="badge unload">Unloading</span>`;
+  if(status==='delivered') return `<span class="badge good">Delivered</span>`;
+  return `<span class="badge critical">Cancelled</span>`;
+}
+function pipelineStageActionsHTML(t){
+  let btns = '';
+  if(t.status==='pending'){
+    btns += `<button class="btn-secondary" onclick="openPipelineStageModal('${t.id}','departed','departureTime','Mark as Departed','Departure Time')">Mark as Departed</button>`;
+  } else if(t.status==='departed'){
+    btns += `<button class="btn-secondary" onclick="openPipelineStageModal('${t.id}','arrived','arrivedTime','Mark as Arrived','Arrival Time')">Mark as Arrived</button>`;
+  } else if(t.status==='arrived'){
+    btns += `<button class="btn-secondary" onclick="openPipelineStageModal('${t.id}','unloading','unloadingStartTime','Mark as Unloading','Unloading Start Time')">Mark as Unloading</button>`;
+  }
+  btns += `<button class="btn-primary" onclick="openPipelineConvertModal('${t.id}')">${t.status==='unloading' ? 'Complete Delivery (Enter Weights)' : 'Enter Final Weights'}</button>`;
+  btns += `<button class="btn-secondary" onclick="cancelPipelineTruck('${t.id}')">Cancel</button>`;
+  return btns;
+}
+function renderPipeline(){
+  const active = data.pipeline.filter(p=>['pending','departed','arrived','unloading'].includes(p.status)).sort((a,b)=>new Date(a.estDelivery)-new Date(b.estDelivery));
+  const pendingEl = document.getElementById('pipelinePendingList');
+  if(pendingEl){
+    if(active.length===0){
+      pendingEl.innerHTML = '<p style="color:var(--text-faint);font-size:13px;">No trucks currently in pipeline.</p>';
+    } else {
+      pendingEl.innerHTML = active.map(t=>{
+        const c = pipelineCountdownInfo(t);
+        const showCountdown = t.status==='pending' || t.status==='departed';
+        return `<div class="pipeline-card" data-pipeline-id="${t.id}">
+          <div class="pipeline-card-top">
+            <div><strong>${t.plate}</strong> <span class="mat-tag devi">${pipelineSourceLabel(t)}</span> ${pipelineStageBadge(t.status)}</div>
+            ${showCountdown ? `<span class="badge ${c.overdue?'critical':'warn'} pipeline-countdown">${c.text}</span>` : ''}
+          </div>
+          <div class="pipeline-card-meta">
+            ${t.driverName ? t.driverName : 'Driver n/a'}${t.driverPhone ? ' · '+t.driverPhone : ''} — ${t.truckType||'Truck type n/a'} — est. ${Math.round(t.estLoad||0).toLocaleString()} kg
+          </div>
+          <div class="pipeline-card-meta">${t.status==='pending' ? 'Loading since' : 'Loading Start Time'} ${new Date(t.loadingStart).toLocaleString()}</div>
+          ${t.departureTime ? `<div class="pipeline-card-meta">Departed ${new Date(t.departureTime).toLocaleString()}</div>` : ''}
+          ${t.arrivedTime ? `<div class="pipeline-card-meta">Arrived (queued) ${new Date(t.arrivedTime).toLocaleString()}</div>` : ''}
+          ${t.unloadingStartTime ? `<div class="pipeline-card-meta">Unloading started ${new Date(t.unloadingStartTime).toLocaleString()}</div>` : ''}
+          <div class="pipeline-card-actions">
+            ${pipelineStageActionsHTML(t)}
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+  const historyBody = document.getElementById('pipelineHistoryBody');
+  if(historyBody){
+    const all = [...data.pipeline].sort((a,b)=>new Date(b.loadingStart)-new Date(a.loadingStart));
+    if(all.length===0){
+      historyBody.innerHTML = '<tr class="empty-row"><td colspan="10">No trucks logged yet.</td></tr>';
+    } else {
+      historyBody.innerHTML = all.map(t=>{
+        return `<tr>
+          <td>${t.plate}</td>
+          <td>${t.driverName||'—'}${t.driverPhone?' ('+t.driverPhone+')':''}</td>
+          <td>${t.truckType||'—'}</td>
+          <td>${pipelineSourceLabel(t)}</td>
+          <td>${Math.round(t.estLoad||0).toLocaleString()}</td>
+          <td>${new Date(t.loadingStart).toLocaleString()}</td>
+          <td>${t.departureTime ? new Date(t.departureTime).toLocaleString() : '—'}</td>
+          <td>${new Date(t.estDelivery).toLocaleString()}</td>
+          <td>${pipelineStageBadge(t.status)}</td>
+          <td><button class="del-btn" onclick="deletePipelineEntry('${t.id}')" title="Delete">✕</button></td>
+        </tr>`;
+      }).join('');
+    }
+  }
+}
+function pipelineOverviewSnapshot(){
+  const active = data.pipeline.filter(p=>['pending','departed','arrived','unloading'].includes(p.status)).sort((a,b)=>new Date(a.estDelivery)-new Date(b.estDelivery));
+  if(active.length===0){
+    return '<p style="color:var(--text-faint);font-size:13px;">No trucks currently in pipeline.</p>';
+  }
+  return `<div class="pill-row" style="margin-bottom:10px;"><div class="pill p-blue"><div class="pill-dot">In Pipeline</div><div class="pill-num">${active.length}</div><div class="pill-sub">truck${active.length===1?'':'s'} loading / en route / queued</div></div></div>` +
+    active.slice(0,3).map(t=>{
+      const c = pipelineCountdownInfo(t);
+      const showCountdown = t.status==='pending' || t.status==='departed';
+      return `<div class="pipeline-card" data-pipeline-id="${t.id}" style="margin-bottom:8px;">
+        <div class="pipeline-card-top">
+          <div><strong>${t.plate}</strong> <span class="mat-tag devi">${pipelineSourceLabel(t)}</span> ${pipelineStageBadge(t.status)}</div>
+          ${showCountdown ? `<span class="badge ${c.overdue?'critical':'warn'} pipeline-countdown">${c.text}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+}
+function updatePipelineCountdowns(){
+  document.querySelectorAll('.pipeline-card').forEach(card=>{
+    const id = card.dataset.pipelineId;
+    const t = data.pipeline.find(p=>p.id===id);
+    if(!t) return;
+    const c = pipelineCountdownInfo(t);
+    const badge = card.querySelector('.pipeline-countdown');
+    if(badge){
+      badge.textContent = c.text;
+      badge.classList.toggle('critical', c.overdue);
+      badge.classList.toggle('warn', !c.overdue);
+    }
+  });
+}
+setInterval(updatePipelineCountdowns, 30000);
 
 /* ---- Balances ---- */
 function computeBalance(material){
@@ -757,6 +1206,77 @@ function trueConsumedSince(dateStr){
     total += logged + extraGap;
   });
   return total;
+}
+
+/* ---- Production Runway Projection ---- */
+const PRODUCT_NAMES = {blaze:'Blaze', master:'Master', signatureGold:'Signature Gold'};
+const PRODUCT_EFF_CONFIG_KEY = {blaze:'effBlaze', master:'effMaster', signatureGold:'effSignatureGold'};
+function computeMachineEfficiency(product){
+  const cfgKey = PRODUCT_EFF_CONFIG_KEY[product];
+  const startingEff = data.config[cfgKey] || 0;
+  const runsWithHours = data.production.filter(p=>p.product===product && p.hoursRun>0);
+  if(runsWithHours.length===0){
+    return {kgPerHour:startingEff, source:'starting'};
+  }
+  const CALIBRATION_THRESHOLD = 10;
+  if(runsWithHours.length < CALIBRATION_THRESHOLD){
+    const cutoff = Date.now()-29*86400000;
+    const rolling = runsWithHours.filter(p=>new Date(p.date).getTime()>=cutoff);
+    if(rolling.length>0){
+      const totalOut = rolling.reduce((s,p)=>s+p.output,0);
+      const totalHrs = rolling.reduce((s,p)=>s+p.hoursRun,0);
+      if(totalHrs>0) return {kgPerHour: totalOut/totalHrs, source:'rolling30'};
+    }
+    return {kgPerHour:startingEff, source:'starting'};
+  } else {
+    const totalOut = runsWithHours.reduce((s,p)=>s+p.output,0);
+    const totalHrs = runsWithHours.reduce((s,p)=>s+p.hoursRun,0);
+    return {kgPerHour: totalHrs>0 ? totalOut/totalHrs : startingEff, source:'calibrated'};
+  }
+}
+function formatRunwayTime(hoursRemaining){
+  if(hoursRemaining==null) return 'Not enough data yet';
+  const shifts = hoursRemaining/10;
+  const days = shifts/2;
+  if(days>=1) return `${days.toFixed(1)} days`;
+  if(hoursRemaining>=1) return `~${hoursRemaining.toFixed(1)} hrs (~${shifts.toFixed(1)} shift${shifts>=1.05?'s':''})`;
+  return `~${Math.max(1,Math.round(hoursRemaining*60))} min`;
+}
+function computeProductRunway(product){
+  const runs = data.production.filter(p=>p.product===product);
+  const totalOutput = runs.reduce((s,p)=>s+p.output,0);
+  const totalBurada = runs.reduce((s,p)=>s+(p.buradaConsumed||0),0);
+  const totalWood = runs.reduce((s,p)=>s+(p.woodConsumed||0),0);
+  if(totalOutput<=0){
+    return {hasData:false};
+  }
+  const woodPerKg = totalWood/totalOutput;
+  const buradaPerKg = product==='signatureGold' ? 0 : totalBurada/totalOutput;
+  const deviStock = computeBalance('devi');
+  const buradaStock = computeBalance('burada');
+  const maxFromDevi = woodPerKg>0 ? deviStock/woodPerKg : Infinity;
+  const maxFromBurada = buradaPerKg>0 ? buradaStock/buradaPerKg : Infinity;
+  const maxTons = Math.max(0, Math.min(maxFromDevi, maxFromBurada));
+  const limitingMaterial = maxFromDevi<=maxFromBurada ? 'devi' : 'burada';
+  const eff = computeMachineEfficiency(product);
+  const hoursRemaining = eff.kgPerHour>0 ? maxTons/eff.kgPerHour : null;
+  return {hasData:true, maxTons, hoursRemaining, limitingMaterial, efficiency:eff};
+}
+function pipelineNextIncoming(){
+  const active = data.pipeline.filter(p=>['pending','departed','arrived','unloading'].includes(p.status))
+    .sort((a,b)=>new Date(a.estDelivery)-new Date(b.estDelivery));
+  return active.length ? active[0] : null;
+}
+function computeDeviStockoutRisk(){
+  const avgDaily = computeAvgDailyUsage('devi');
+  const deviStock = computeBalance('devi');
+  if(!avgDaily || avgDaily<=0) return null;
+  const daysRemaining = deviStock/avgDaily;
+  const stockoutTime = Date.now() + daysRemaining*86400000;
+  const nextTruck = pipelineNextIncoming();
+  const nextTruckETA = nextTruck ? new Date(nextTruck.estDelivery).getTime() : null;
+  const atRisk = nextTruckETA===null || stockoutTime < nextTruckETA;
+  return { daysRemaining, stockoutTime, nextTruck, nextTruckETA, atRisk };
 }
 
 /* ---- Active Wastage % ---- */
@@ -870,10 +1390,30 @@ function openProductionModal(){
   document.getElementById('pWoodSpeed').value = '';
   document.getElementById('pNote').value = '';
   document.getElementById('pWastage').value = (getActiveWastage().pct*100).toFixed(1);
+  document.getElementById('pHoursRun').value = 10;
+  document.getElementById('pReason').value = 'raw_material_shortage';
+  document.getElementById('pReasonNote').value = '';
+  document.getElementById('pReasonField').style.display = 'none';
+  document.getElementById('pReasonNoteField').style.display = 'none';
+  document.getElementById('pBags').value = '';
   onProductionProductChange();
   document.getElementById('productionModalBackdrop').classList.add('open');
 }
 function closeProductionModal(){ document.getElementById('productionModalBackdrop').classList.remove('open'); }
+function onHoursRunChange(){
+  const hours = parseFloat(document.getElementById('pHoursRun').value);
+  const short = !isNaN(hours) && hours < 10;
+  document.getElementById('pReasonField').style.display = short ? 'block' : 'none';
+  if(!short){
+    document.getElementById('pReasonNoteField').style.display = 'none';
+  } else {
+    onReasonChange();
+  }
+}
+function onReasonChange(){
+  const reason = document.getElementById('pReason').value;
+  document.getElementById('pReasonNoteField').style.display = reason==='other' ? 'block' : 'none';
+}
 function onProductionProductChange(){
   const product = document.getElementById('pProduct').value;
   document.getElementById('pBareekSpeedField').style.display = product==='blaze' ? 'block' : 'none';
@@ -903,6 +1443,8 @@ function updateProductionPreview(){
   document.getElementById('productionPreview').innerHTML =
     `Total RM consumed: <b>${Math.round(r.totalConsumed).toLocaleString()} kg</b><br>` +
     `Burada: <b>${Math.round(r.buradaConsumed).toLocaleString()} kg</b> &nbsp;|&nbsp; Wood: <b>${Math.round(r.woodConsumed).toLocaleString()} kg</b>`;
+  const bagWeight = data.config.defaultBagWeight || 40;
+  document.getElementById('pBags').value = output>0 ? Math.round(output/bagWeight) : '';
 }
 function saveProduction(){
   const date = document.getElementById('pDate').value;
@@ -913,38 +1455,99 @@ function saveProduction(){
   const buradaSpeed = product==='blaze' ? (parseFloat(document.getElementById('pBareekSpeed').value)||0) : product==='master' ? (parseFloat(document.getElementById('pMotaSpeed').value)||0) : 0;
   const woodSpeed = parseFloat(document.getElementById('pWoodSpeed').value)||0;
   const note = document.getElementById('pNote').value.trim();
+  const hoursRun = parseFloat(document.getElementById('pHoursRun').value);
+  const isShort = !isNaN(hoursRun) && hoursRun < 10;
+  const shortfallReason = isShort ? document.getElementById('pReason').value : null;
+  const shortfallNote = (isShort && shortfallReason==='other') ? document.getElementById('pReasonNote').value.trim() : null;
+  const bags = parseFloat(document.getElementById('pBags').value)||0;
   if(!date || !output || output<=0){ alert('Please enter a date and a valid output quantity.'); return; }
   if(isNaN(wastagePct) || wastagePct<0 || wastagePct>=100){ alert('Please enter a valid wastage % (0-99).'); return; }
+  if(isNaN(hoursRun) || hoursRun<=0 || hoursRun>10){ alert('Please enter valid hours run (0-10).'); return; }
   const r = calcProductionConsumption(output, wastagePct, product, buradaSpeed, woodSpeed);
   const buradaType = product==='blaze' ? 'bareek' : product==='master' ? 'mota' : null;
   const prodId = genId();
   data.production.push({id:prodId, date, shift, product, output, wastagePct, buradaType, buradaSpeed, woodSpeed,
-    buradaConsumed:r.buradaConsumed, woodConsumed:r.woodConsumed, note});
+    buradaConsumed:r.buradaConsumed, woodConsumed:r.woodConsumed, note, hoursRun, shortfallReason, shortfallNote, bags});
   if(r.buradaConsumed>0) data.transactions.push({id:genId(), date, type:'out', material:'burada', category:'production', product, productionId:prodId, qty:r.buradaConsumed, rate:null, note});
   if(r.woodConsumed>0) data.transactions.push({id:genId(), date, type:'out', material:'devi', category:'production', product, productionId:prodId, qty:r.woodConsumed, rate:null, note});
+  if(bags>0) data.finishedGoods.push({id:genId(), date, product, type:'produced', bags, note, productionId:prodId});
   persist(); closeProductionModal(); render();
 }
 function deleteProductionRun(id){
   data.production = data.production.filter(p=>p.id!==id);
   data.transactions = data.transactions.filter(t=>t.productionId!==id);
+  data.finishedGoods = data.finishedGoods.filter(f=>f.productionId!==id);
+  persist(); render();
+}
+function openSaleModal(){
+  document.getElementById('sDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('sProduct').value = 'blaze';
+  document.getElementById('sBags').value = '';
+  document.getElementById('sNote').value = '';
+  document.getElementById('saleModalBackdrop').classList.add('open');
+}
+function closeSaleModal(){ document.getElementById('saleModalBackdrop').classList.remove('open'); }
+function saveSale(){
+  const date = document.getElementById('sDate').value;
+  const product = document.getElementById('sProduct').value;
+  const bags = parseFloat(document.getElementById('sBags').value);
+  const note = document.getElementById('sNote').value.trim();
+  if(!date){ alert('Please enter a date.'); return; }
+  if(!bags || bags<=0){ alert('Please enter a valid number of bags sold.'); return; }
+  data.finishedGoods.push({id:genId(), date, product, type:'sold', bags, note});
+  persist(); closeSaleModal(); render();
+}
+function computeFinishedGoodsBalance(product){
+  return data.finishedGoods.filter(f=>f.product===product).reduce((s,f)=> s + (f.type==='produced' ? f.bags : -f.bags), 0);
+}
+function deleteFinishedGoodsEntry(id){
+  data.finishedGoods = data.finishedGoods.filter(f=>f.id!==id);
   persist(); render();
 }
 function renderProduction(){
   const runs = [...data.production].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const body = document.getElementById('productionBody');
-  if(runs.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="9">No production runs logged yet.</td></tr>'; return; }
+  if(runs.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="11">No production runs logged yet.</td></tr>'; return; }
   const prodNames = {blaze:'Blaze', master:'Master', signatureGold:'Signature Gold'};
-  body.innerHTML = runs.map(p=>`<tr>
+  const reasonLabels = {raw_material_shortage:'RM Shortage', machine_malfunction:'Malfunction', power_outage:'Power Outage', scheduled_maintenance:'Maintenance', other:'Other'};
+  body.innerHTML = runs.map(p=>{
+    const hoursDisplay = p.hoursRun!=null ? p.hoursRun : 10;
+    let reasonDisplay = '—';
+    if(p.shortfallReason){
+      reasonDisplay = reasonLabels[p.shortfallReason] || p.shortfallReason;
+      if(p.shortfallReason==='other' && p.shortfallNote) reasonDisplay += `: ${p.shortfallNote}`;
+    }
+    return `<tr>
     <td>${p.date}</td>
     <td>${p.shift==='day'?'Day':'Night'}</td>
     <td><span class="prod-tag ${p.product}">${prodNames[p.product]}</span></td>
     <td>${p.output.toLocaleString()}</td>
+    <td>${hoursDisplay}h</td>
+    <td>${reasonDisplay}</td>
     <td>${p.wastagePct.toFixed(1)}%</td>
     <td>${Math.round(p.buradaConsumed).toLocaleString()}</td>
     <td>${Math.round(p.woodConsumed).toLocaleString()}</td>
     <td>${p.note||'—'}</td>
     <td><button class="del-btn" onclick="deleteProductionRun('${p.id}')" title="Delete">✕</button></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
+}
+function renderFinishedGoods(){
+  const body = document.getElementById('finishedGoodsBody');
+  if(!body) return;
+  const entries = [...data.finishedGoods].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(entries.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="6">No finished goods activity logged yet.</td></tr>'; return; }
+  body.innerHTML = entries.map(f=>{
+    const typeLabel = f.type==='produced' ? `<span class="badge good">Produced</span>` : `<span class="badge info">Sold</span>`;
+    return `<tr>
+    <td>${f.date}</td>
+    <td><span class="prod-tag ${f.product}">${PRODUCT_NAMES[f.product]}</span></td>
+    <td>${typeLabel}</td>
+    <td>${f.type==='sold'?'-':''}${Math.round(f.bags).toLocaleString()}</td>
+    <td>${f.note||'—'}</td>
+    <td><button class="del-btn" onclick="deleteFinishedGoodsEntry('${f.id}')" title="Delete">✕</button></td>
+  </tr>`;
+  }).join('');
 }
 
 /* ---- Cards / breakdowns ---- */
@@ -1042,6 +1645,80 @@ function buradaTypeBreakdownHTML(){
   return sourceRow('Bareek (Blaze)', bareek, grand>0?bareek/grand*100:0, 'var(--red)') +
          sourceRow('Mota (Master)', mota, grand>0?mota/grand*100:0, 'var(--purple)');
 }
+function monthProductionBreakdownHTML(){
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const runs = data.production.filter(p=>{
+    const d = new Date(p.date);
+    return d.getFullYear()===y && d.getMonth()===m;
+  });
+  const totals = {blaze:0, master:0, signatureGold:0};
+  runs.forEach(p=>{ if(totals[p.product]!==undefined) totals[p.product]+=p.output; });
+  const grand = totals.blaze+totals.master+totals.signatureGold;
+  if(grand===0) return '<p style="color:var(--text-dim);font-size:13px;margin:0;">No production runs logged this month yet.</p>';
+  return sourceRow('Blaze', totals.blaze, grand>0?totals.blaze/grand*100:0, 'var(--red)') +
+         sourceRow('Master', totals.master, grand>0?totals.master/grand*100:0, 'var(--purple)') +
+         sourceRow('Signature Gold', totals.signatureGold, grand>0?totals.signatureGold/grand*100:0, 'var(--amber)');
+}
+function finishedGoodsOverviewHTML(){
+  const products = ['blaze','master','signatureGold'];
+  return '<div class="grid grid-3" style="gap:10px;">' + products.map(product=>{
+    const bags = computeFinishedGoodsBalance(product);
+    return `<div class="runway-tile">
+      <div class="runway-tile-name">${PRODUCT_NAMES[product]}</div>
+      <div class="runway-tile-tons">${Math.round(bags).toLocaleString()}<span> bags</span></div>
+    </div>`;
+  }).join('') + '</div>';
+}
+function runwayOverviewHTML(){
+  const products = ['signatureGold','blaze','master'];
+  return '<div class="grid grid-3" style="gap:10px;">' + products.map(product=>{
+    const r = computeProductRunway(product);
+    if(!r.hasData){
+      return `<div class="runway-tile">
+        <div class="runway-tile-name">${PRODUCT_NAMES[product]}</div>
+        <p style="color:var(--text-faint);font-size:12px;margin:6px 0 0;">Not enough production history yet.</p>
+      </div>`;
+    }
+    const timeText = formatRunwayTime(r.hoursRemaining);
+    const limitLabel = r.limitingMaterial==='devi' ? 'Limited by Devi Wood' : 'Limited by Burada';
+    return `<div class="runway-tile">
+      <div class="runway-tile-name">${PRODUCT_NAMES[product]}</div>
+      <div class="runway-tile-tons">${Math.round(r.maxTons).toLocaleString()}<span> kg</span></div>
+      <div class="runway-tile-days">${timeText}</div>
+      <span class="badge na" style="margin-top:6px;">${limitLabel}</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+function machineEfficiencyOverviewHTML(){
+  const products = ['signatureGold','blaze','master'];
+  const sourceLabel = {starting:'Starting Estimate', rolling30:'Rolling Average', calibrated:'Calibrated'};
+  const badgeClass = {starting:'na', rolling30:'warn', calibrated:'good'};
+  return '<div class="grid grid-3" style="gap:10px;">' + products.map(product=>{
+    const eff = computeMachineEfficiency(product);
+    return `<div class="runway-tile">
+      <div class="runway-tile-name">${PRODUCT_NAMES[product]}</div>
+      <div class="runway-tile-tons">${Math.round(eff.kgPerHour).toLocaleString()}<span> kg/hr</span></div>
+      <span class="badge ${badgeClass[eff.source]}" style="margin-top:6px;">${sourceLabel[eff.source]}</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+function stockoutAlertHTML(){
+  const risk = computeDeviStockoutRisk();
+  if(!risk || !risk.atRisk) return '';
+  const daysTxt = risk.daysRemaining.toFixed(1);
+  const stockoutDateTxt = new Date(risk.stockoutTime).toLocaleString();
+  let truckTxt;
+  if(risk.nextTruck){
+    truckTxt = `The next incoming truck (${risk.nextTruck.plate}, ${pipelineSourceLabel(risk.nextTruck)}) isn't due until ${new Date(risk.nextTruckETA).toLocaleString()} — after stock is projected to run out.`;
+  } else {
+    truckTxt = `There is no truck currently logged in the pipeline.`;
+  }
+  return `<div class="stockout-alert">
+    <div class="stockout-alert-title">⚠ Devi Wood Stockout Risk</div>
+    <div class="stockout-alert-body">At the current consumption pace, Devi Wood stock is projected to run out in <strong>~${daysTxt} days</strong> (around ${stockoutDateTxt}). ${truckTxt}</div>
+  </div>`;
+}
 function wastageOverviewHTML(){
   const totalProduced = data.production.reduce((s,p)=>s+p.output,0);
   const totalConsumed = data.production.reduce((s,p)=>s+(p.buradaConsumed+p.woodConsumed),0);
@@ -1098,11 +1775,17 @@ function renderLog(){
 }
 
 function render(){
+  document.getElementById('stockoutAlertBanner').innerHTML = stockoutAlertHTML();
+  document.getElementById('runwayOverviewCard').innerHTML = runwayOverviewHTML();
+  document.getElementById('machineEfficiencyOverviewCard').innerHTML = machineEfficiencyOverviewHTML();
   document.getElementById('siloBuradaCard').innerHTML = siloCard('burada','Burada (Bareek + Mota)');
   document.getElementById('siloDeviCard').innerHTML = siloCard('devi','Devi Wood');
   document.getElementById('overviewAverages').innerHTML = purchaseAveragesHTML(true);
   document.getElementById('wastageOverviewCard').innerHTML = wastageOverviewHTML();
+  document.getElementById('pipelineOverviewCard').innerHTML = pipelineOverviewSnapshot();
   document.getElementById('buradaTypeBreakdown').innerHTML = buradaTypeBreakdownHTML();
+  document.getElementById('monthProductionBreakdown').innerHTML = monthProductionBreakdownHTML();
+  document.getElementById('finishedGoodsOverviewCard').innerHTML = finishedGoodsOverviewHTML();
   document.getElementById('sourceBreakdownOverview').innerHTML = sourceBreakdownHTML();
   document.getElementById('sourceBreakdownFull').innerHTML = sourceBreakdownHTML();
   document.getElementById('purchaseAverages').innerHTML = purchaseAveragesHTML(false);
@@ -1113,6 +1796,8 @@ function render(){
   renderChecks();
   renderZeroFlags();
   renderProduction();
+  renderFinishedGoods();
+  renderPipeline();
 }
 
 function exportSnapshot(){

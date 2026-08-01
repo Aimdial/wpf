@@ -266,7 +266,7 @@
         </div>
         <div class="grid grid-2" style="margin-bottom:18px;">
           <div class="card">
-            <div class="card-head"><h3>Purchased vs Consumed &amp; Active Wastage</h3></div>
+            <div class="card-head"><h3>Active Wastage</h3></div>
             <div id="wastageOverviewCard"></div>
             <div class="card-footer"><a onclick="showPage('checks')">Manage wastage calibration</a></div>
           </div>
@@ -379,12 +379,9 @@
             <div class="field"><label>Devi Wood rate — Akhtar (PKR/kg)</label><input type="number" id="cfgAkhtarRate" min="0" step="0.5"></div>
             <div class="field"><label>Reorder threshold — Burada (days)</label><input type="number" id="cfgReorderBurada" min="1" step="0.5"></div>
             <div class="field"><label>Reorder threshold — Devi Wood (days)</label><input type="number" id="cfgReorderDevi" min="1" step="0.5"></div>
-            <div class="field"><label>Devi Wood effective density (kg/m³, stacked)</label><input type="number" id="cfgDeviDensity" min="1" step="5"></div>
-            <div class="field"><label>Burada effective density (kg/m³, piled)</label><input type="number" id="cfgBuradaDensity" min="1" step="5"></div>
             <div class="field"><label>Stock check — flag variance above (%)</label><input type="number" id="cfgVarianceThreshold" min="1" step="1"></div>
             <div class="field"><label>Starting wastage % (used until real data exists)</label><input type="number" id="cfgStartingWastage" min="0" max="90" step="1"></div>
           </div>
-          <p style="font-size:12px;color:var(--text-dim);margin:-4px 0 14px;">Effective density accounts for air gaps in a stacked pile — it's an estimate, not a lab value. Adjust it over time as you compare Stock Check readings against what actually gets consumed.</p>
           <button class="btn-primary" onclick="saveConfig()">Save settings</button>
           <button class="btn-ghost" style="margin-left:14px;" onclick="resetAll()">Reset all data</button>
         </div>
@@ -402,9 +399,9 @@
     <div class="field" id="categoryField">
       <label>Category</label>
       <select id="mCategory" onchange="onCategoryChange()">
-        <option value="taal">Devi Wood — Taal delivery (Ali Bhai)</option>
-        <option value="akhtar">Devi Wood — Akhtar delivery</option>
-        <option value="burada">Burada purchase (Ali Bhai, mixed Bareek+Mota)</option>
+        <option value="taal">Devi Wood - Ali</option>
+        <option value="akhtar">Devi Wood - Akhtar</option>
+        <option value="burada">Burada - Ali</option>
       </select>
     </div>
     <div class="field" id="usageMatField" style="display:none;">
@@ -428,18 +425,16 @@
 
 <!-- STOCK CHECK ESTIMATE MODAL -->
 <div class="modal-backdrop" id="estimateModalBackdrop">
-  <div class="modal" style="max-width:520px;">
+  <div class="modal" style="max-width:420px;">
     <h3>New Stock Check</h3>
     <div class="field"><label>Date</label><input type="date" id="eDate"></div>
     <div class="field"><label>Material</label>
-      <select id="eMaterial" onchange="renderPileRows()">
+      <select id="eMaterial">
         <option value="devi">Devi Wood</option>
         <option value="burada">Burada</option>
       </select>
     </div>
-    <div id="pileRows"></div>
-    <button class="btn-secondary" style="margin-bottom:14px;" onclick="addPileRow()">+ Add pile</button>
-    <div class="net-preview" id="estimateTotal">Total estimated: 0 kg</div>
+    <div class="field"><label>Counted weight (kg)</label><input type="number" id="eWeight" placeholder="e.g. 8500" min="0" step="any"></div>
     <div class="field"><label>Note (optional)</label><input type="text" id="eNote" placeholder="e.g. who measured, which yard area"></div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeEstimateModal()">Cancel</button>
@@ -447,6 +442,7 @@
     </div>
   </div>
 </div>
+
 
 <!-- ZERO-STOCK FLAG MODAL -->
 <div class="modal-backdrop" id="zeroFlagModalBackdrop">
@@ -571,8 +567,6 @@ function populateSettingsFields(){
   document.getElementById('cfgAkhtarRate').value = data.config.akhtarRate;
   document.getElementById('cfgReorderBurada').value = data.config.reorderBurada;
   document.getElementById('cfgReorderDevi').value = data.config.reorderDevi;
-  document.getElementById('cfgDeviDensity').value = data.config.deviDensity;
-  document.getElementById('cfgBuradaDensity').value = data.config.buradaDensity;
   document.getElementById('cfgVarianceThreshold').value = data.config.varianceThreshold;
   document.getElementById('cfgStartingWastage').value = data.config.startingWastagePct;
 }
@@ -584,8 +578,6 @@ function saveConfig(){
   data.config.akhtarRate = parseFloat(document.getElementById('cfgAkhtarRate').value)||0;
   data.config.reorderBurada = parseFloat(document.getElementById('cfgReorderBurada').value)||3;
   data.config.reorderDevi = parseFloat(document.getElementById('cfgReorderDevi').value)||3;
-  data.config.deviDensity = parseFloat(document.getElementById('cfgDeviDensity').value)||400;
-  data.config.buradaDensity = parseFloat(document.getElementById('cfgBuradaDensity').value)||250;
   data.config.varianceThreshold = parseFloat(document.getElementById('cfgVarianceThreshold').value)||15;
   data.config.startingWastagePct = parseFloat(document.getElementById('cfgStartingWastage').value)||30;
   persist(); render();
@@ -729,6 +721,35 @@ function outputSince(dateStr){
   const cutoff = new Date(dateStr).getTime();
   return data.production.filter(p=>new Date(p.date).getTime()>=cutoff).reduce((s,p)=>s+p.output,0);
 }
+function consumedSince(dateStr){
+  const cutoff = new Date(dateStr).getTime();
+  return data.production.filter(p=>new Date(p.date).getTime()>=cutoff).reduce((s,p)=>s+(p.buradaConsumed+p.woodConsumed),0);
+}
+/* True Consumed = what the production log says was used, PLUS any gap a physical Stock Check
+   or near-empty flag reveals between book stock and what's actually on the ground — per material,
+   so a check/flag on just ONE material still updates the overall number immediately. */
+function trueConsumedSince(dateStr){
+  const cutoff = new Date(dateStr).getTime();
+  let total = 0;
+  ['burada','devi'].forEach(material=>{
+    const logged = data.production.filter(p=>new Date(p.date).getTime()>=cutoff)
+      .reduce((s,p)=> s + (material==='burada' ? p.buradaConsumed : p.woodConsumed), 0);
+    const flagKey = material==='devi' ? 'devi' : 'burada';
+    const checks = data.transactions.filter(t=>t.type==='estimate' && t.material===material && new Date(t.date).getTime()>=cutoff)
+      .map(t=>({date:t.date, qty:t.qty}));
+    const flags = data.wastage.zeroFlags[flagKey].filter(f=>new Date(f.date).getTime()>=cutoff)
+      .map(f=>({date:f.date, qty:0}));
+    const physicalPoints = [...checks, ...flags].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    let extraGap = 0;
+    if(physicalPoints.length){
+      const latest = physicalPoints[physicalPoints.length-1];
+      const book = computeBalanceAsOf(material, latest.date);
+      extraGap = Math.max(0, book - latest.qty);
+    }
+    total += logged + extraGap;
+  });
+  return total;
+}
 
 /* ---- Active Wastage % ---- */
 function getActiveWastage(){
@@ -736,18 +757,18 @@ function getActiveWastage(){
   if(bFlags.length && dFlags.length){
     const lastB = bFlags[bFlags.length-1].date, lastD = dFlags[dFlags.length-1].date;
     const calibDate = lastB > lastD ? lastB : lastD;
-    const purchased = purchasedSince(calibDate);
+    const consumed = trueConsumedSince(calibDate);
     const output = outputSince(calibDate);
-    if(purchased>0 && output>0){
-      const pct = Math.max(0, Math.min(0.95, 1-(output/purchased)));
+    if(consumed>0 && output>0){
+      const pct = Math.max(0, Math.min(0.95, 1-(output/consumed)));
       return {pct, source:'calibrated', since:calibDate};
     }
   }
   const d30 = new Date(Date.now()-29*86400000).toISOString().slice(0,10);
-  const purchased30 = purchasedSince(d30);
+  const consumed30 = trueConsumedSince(d30);
   const output30 = outputSince(d30);
-  if(purchased30>0 && output30>0){
-    const pct = Math.max(0, Math.min(0.95, 1-(output30/purchased30)));
+  if(consumed30>0 && output30>0){
+    const pct = Math.max(0, Math.min(0.95, 1-(output30/consumed30)));
     return {pct, source:'rolling30', since:null};
   }
   return {pct:(data.config.startingWastagePct||30)/100, source:'starting', since:null};
@@ -788,69 +809,22 @@ function renderZeroFlags(){
 }
 
 /* ---- Purchase/Usage/Estimate modal helpers (Stock Check pile estimator) ---- */
-let pileRows = [];
 function openEstimateModal(){
   document.getElementById('eDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('eNote').value = '';
   document.getElementById('eMaterial').value = 'devi';
-  pileRows = [{shape:'rect', l:'', wBase:'', wTop:'', h:''}];
-  renderPileRows();
+  document.getElementById('eWeight').value = '';
   document.getElementById('estimateModalBackdrop').classList.add('open');
 }
 function closeEstimateModal(){ document.getElementById('estimateModalBackdrop').classList.remove('open'); }
-function addPileRow(){ pileRows.push({shape:'rect', l:'', wBase:'', wTop:'', h:''}); renderPileRows(); }
-function removePileRow(idx){ pileRows.splice(idx,1); renderPileRows(); }
-function updatePileField(idx, field, value){ pileRows[idx][field] = value; updateEstimateTotal(); }
-function pileVolumeKg(row){
-  const L = parseFloat(row.l)||0, Wb = parseFloat(row.wBase)||0, Wt = parseFloat(row.wTop)||0, H = parseFloat(row.h)||0;
-  if(!L || !Wb || !H) return 0;
-  const volFt3 = row.shape==='rect' ? (L*Wb*H) : (((Wb+Wt)/2)*H*L);
-  const volM3 = volFt3 * 0.0283168;
-  const material = document.getElementById('eMaterial') ? document.getElementById('eMaterial').value : 'devi';
-  const density = material==='devi' ? data.config.deviDensity : data.config.buradaDensity;
-  return volM3 * density;
-}
-function renderPileRows(){
-  document.getElementById('pileRows').innerHTML = pileRows.map((row,idx)=>{
-    const kg = pileVolumeKg(row);
-    return `<div class="pile-row">
-      <div class="pile-row-top"><span>Pile ${idx+1}</span>${pileRows.length>1?`<button class="pile-row-remove" onclick="removePileRow(${idx})">✕ remove</button>`:''}</div>
-      <div class="field" style="margin-bottom:8px;">
-        <label>Shape</label>
-        <select onchange="updatePileField(${idx},'shape',this.value); renderPileRows();">
-          <option value="rect" ${row.shape==='rect'?'selected':''}>Rectangular (same width top &amp; bottom)</option>
-          <option value="taper" ${row.shape==='taper'?'selected':''}>Tapered (wider base, narrower top)</option>
-        </select>
-      </div>
-      <div class="pile-grid">
-        <div class="field"><label>Length (ft)</label><input type="number" min="0" value="${row.l}" oninput="updatePileField(${idx},'l',this.value)"></div>
-        <div class="field"><label>${row.shape==='taper'?'Width at base (ft)':'Width (ft)'}</label><input type="number" min="0" value="${row.wBase}" oninput="updatePileField(${idx},'wBase',this.value)"></div>
-        ${row.shape==='taper' ? `<div class="field"><label>Width at top (ft)</label><input type="number" min="0" value="${row.wTop}" oninput="updatePileField(${idx},'wTop',this.value)"></div>` : ''}
-        <div class="field"><label>Height (ft)</label><input type="number" min="0" value="${row.h}" oninput="updatePileField(${idx},'h',this.value)"></div>
-      </div>
-      <div class="pile-kg">≈ ${Math.round(kg).toLocaleString()} kg</div>
-    </div>`;
-  }).join('');
-  updateEstimateTotal();
-}
-function updateEstimateTotal(){
-  const total = pileRows.reduce((s,row)=>s+pileVolumeKg(row),0);
-  const el = document.getElementById('estimateTotal');
-  if(el) el.textContent = `Total estimated: ${Math.round(total).toLocaleString()} kg across ${pileRows.length} pile${pileRows.length===1?'':'s'}`;
-  document.querySelectorAll('#pileRows .pile-row').forEach((el2,idx)=>{
-    const kgEl = el2.querySelector('.pile-kg');
-    if(kgEl) kgEl.textContent = `≈ ${Math.round(pileVolumeKg(pileRows[idx])).toLocaleString()} kg`;
-  });
-}
 function saveEstimate(){
   const date = document.getElementById('eDate').value;
   const material = document.getElementById('eMaterial').value;
   const note = document.getElementById('eNote').value.trim();
+  const weight = parseFloat(document.getElementById('eWeight').value);
   if(!date){ alert('Please enter a date.'); return; }
-  const validRows = pileRows.filter(r=>parseFloat(r.l)>0 && parseFloat(r.wBase)>0 && parseFloat(r.h)>0);
-  if(validRows.length===0){ alert('Please enter dimensions for at least one pile.'); return; }
-  const totalKg = validRows.reduce((s,row)=>s+pileVolumeKg(row),0);
-  data.transactions.push({id:genId(), date, type:'estimate', material, category:'physical_estimate', piles:validRows, qty:Math.round(totalKg), rate:null, note});
+  if(!weight || weight<0){ alert('Please enter the counted weight in kg.'); return; }
+  data.transactions.push({id:genId(), date, type:'estimate', material, category:'physical_estimate', qty:Math.round(weight), rate:null, note});
   persist(); closeEstimateModal(); render();
 }
 function renderChecks(){
@@ -1093,7 +1067,7 @@ function renderLog(){
     else if(t.category==='akhtar') srcLabel = 'Akhtar';
     else if(t.category==='burada') srcLabel = 'Ali Bhai (market)';
     else if(t.category==='consumption') srcLabel = 'Production (manual)';
-    else if(t.category==='physical_estimate') srcLabel = `Physical estimate (${t.piles?t.piles.length:0} pile${t.piles&&t.piles.length===1?'':'s'})`;
+    else if(t.category==='physical_estimate') srcLabel = 'Stock Check (counted weight)';
     else if(t.category==='production') srcLabel = `Production (${prodNames[t.product]||t.product})`;
     else if(t.category==='zero_reset') srcLabel = 'Zero-stock reset';
     const value = t.rate ? Math.round(t.qty*t.rate) : null;

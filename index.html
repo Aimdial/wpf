@@ -76,7 +76,24 @@
   .grid{display:grid;gap:18px;}
   .grid-3{grid-template-columns:repeat(auto-fit,minmax(180px,1fr));}
   .grid-2{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));}
-  @media(max-width:720px){.app{flex-direction:column;} .sidebar{width:100%;flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border);} .nav-item{white-space:nowrap;padding:8px 10px;font-size:12px;gap:5px;} .brand{display:none;} .actions{width:100%;} .actions button{flex:1 1 auto;}}
+  .mobile-bottom-nav{display:none;}
+  @media(max-width:720px){
+    .app{flex-direction:column;}
+    .sidebar{display:none;}
+    .mobile-bottom-nav{
+      display:flex; position:fixed; left:0; right:0; bottom:0; z-index:50;
+      background:rgba(255,255,255,0.92); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+      border-top:1px solid var(--border); padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+      justify-content:space-between; box-shadow:0 -2px 10px rgba(0,0,0,0.06);
+    }
+    .mobile-bottom-nav .nav-item{
+      flex:1; display:flex; align-items:center; justify-content:center; margin:0; padding:8px 4px; border-radius:10px; color:var(--text-dim);
+    }
+    .mobile-bottom-nav .nav-item svg{width:22px;height:22px;}
+    .mobile-bottom-nav .nav-item.active{color:var(--blue); background:#EEF4FF;}
+    .main{padding-bottom:76px;}
+    .actions{width:100%;} .actions button{flex:1 1 auto;}
+  }
   body{overflow-x:hidden;}
 
   .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,0.03);}
@@ -246,7 +263,7 @@
       Overview
     </div>
     <div class="nav-item" data-page="sources" onclick="showPage('sources')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7.5v9L12 21l-9-4.5v-9L12 3z"/><path d="M3 7.5l9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
       Sources
     </div>
     <div class="nav-item" data-page="pipeline" onclick="showPage('pipeline')">
@@ -270,6 +287,30 @@
       Settings
     </div>
   </div>
+
+  <nav class="mobile-bottom-nav">
+    <div class="nav-item mnav-item active" data-page="overview" onclick="showPage('overview')" title="Overview">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h7v7"/></svg>
+    </div>
+    <div class="nav-item mnav-item" data-page="sources" onclick="showPage('sources')" title="Sources">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7.5v9L12 21l-9-4.5v-9L12 3z"/><path d="M3 7.5l9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
+    </div>
+    <div class="nav-item mnav-item" data-page="pipeline" onclick="showPage('pipeline')" title="Truck Pipeline">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/><path d="M9 12h2"/></svg>
+    </div>
+    <div class="nav-item mnav-item" data-page="production" onclick="showPage('production')" title="Production">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V10l5 3v-3l5 3v-3l5 3v8H3z"/><path d="M3 21h18"/></svg>
+    </div>
+    <div class="nav-item mnav-item" data-page="log" onclick="showPage('log')" title="Activity Log">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+    </div>
+    <div class="nav-item mnav-item" data-page="checks" onclick="showPage('checks')" title="Stock Check">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 7v3M10 7v4M14 7v3M18 7v4"/></svg>
+    </div>
+    <div class="nav-item mnav-item" data-page="settings" onclick="showPage('settings')" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 11-4 0v-.2a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.2a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9.5a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.2a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9.5a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.2a1.7 1.7 0 00-1.5 1z"/></svg>
+    </div>
+  </nav>
 
   <div class="main">
     <div id="statusMsg" class="status-msg">Loading inventory data…</div>

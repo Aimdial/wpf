@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --bg-page:#F3F5F8;
@@ -192,6 +193,15 @@
   ::-webkit-scrollbar-track{background:transparent;}
   ::-webkit-scrollbar-thumb{background:#A7E3C3;border-radius:10px;}
   ::-webkit-scrollbar-thumb:hover{background:#7FD1A6;}
+  .snapshot-tile-actions{display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:10px;}
+  .snapshot-tile-actions a{color:var(--blue);cursor:pointer;}
+  .snapshot-tile-actions span{color:var(--text-dim);}
+  .snapshot-tile-list{display:flex;flex-direction:column;gap:2px;max-height:320px;overflow-y:auto;margin-bottom:4px;}
+  .snapshot-tile-row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;cursor:pointer;}
+  .snapshot-tile-row:hover{background:#F3F5F8;}
+  .snapshot-tile-row input[type="checkbox"]{width:17px;height:17px;flex-shrink:0;accent-color:#7FD1A6;}
+  .snapshot-tile-row label{font-size:13.5px;color:var(--text);cursor:pointer;}
+  .snapshot-tile-row.disabled{opacity:0.4;pointer-events:none;}
   .modal::-webkit-scrollbar{width:3px;}
   .modal::-webkit-scrollbar-button{display:none;width:0;height:0;}
   .modal::-webkit-scrollbar-thumb{background:#A7E3C3;border-radius:10px;}
@@ -276,7 +286,7 @@
       <!-- OVERVIEW -->
       <div class="page active" id="page-overview">
         <div id="stockoutAlertBanner"></div>
-        <div class="grid grid-3" style="margin-bottom:18px;">
+        <div class="grid grid-3" id="tile-silos" style="margin-bottom:18px;">
           <div class="card" id="siloBuradaCard"></div>
           <div class="card" id="siloDeviCard"></div>
           <div class="card">
@@ -285,16 +295,16 @@
             <div class="card-footer"><a onclick="showPage('sources')">View sources</a></div>
           </div>
         </div>
-        <div class="card" style="margin-bottom:18px;">
+        <div class="card" id="tile-runway" style="margin-bottom:18px;">
           <div class="card-head"><h3>Production Runway — At Current Stock</h3></div>
           <div id="runwayOverviewCard"></div>
         </div>
-        <div class="card" style="margin-bottom:18px;">
+        <div class="card" id="tile-efficiency" style="margin-bottom:18px;">
           <div class="card-head"><h3>Active Machine Efficiency</h3></div>
           <div id="machineEfficiencyOverviewCard"></div>
           <div class="card-footer"><a onclick="showPage('production')">View production log</a></div>
         </div>
-        <div class="grid grid-3" style="margin-bottom:18px;">
+        <div class="grid grid-3" id="tile-wastagerow" style="margin-bottom:18px;">
           <div class="card">
             <div class="card-head"><h3>Active Wastage</h3></div>
             <div id="wastageOverviewCard"></div>
@@ -311,17 +321,17 @@
             <div class="card-footer"><a onclick="showPage('production')">View production log</a></div>
           </div>
         </div>
-        <div class="card" style="margin-bottom:18px;">
+        <div class="card" id="tile-finishedgoods" style="margin-bottom:18px;">
           <div class="card-head"><h3>Finished Goods (Bags in Stock)</h3></div>
           <div id="finishedGoodsOverviewCard"></div>
           <div class="card-footer"><a onclick="openSaleModal()">+ Log Sale</a></div>
         </div>
-        <div class="card" style="margin-bottom:18px;">
+        <div class="card" id="tile-pipeline" style="margin-bottom:18px;">
           <div class="card-head"><h3>Trucks in Pipeline</h3></div>
           <div id="pipelineOverviewCard"></div>
           <div class="card-footer"><a onclick="showPage('pipeline')">View full pipeline</a></div>
         </div>
-        <div class="card">
+        <div class="card" id="tile-sourcebreakdown">
           <div class="card-head"><h3>Devi Wood — Source Breakdown</h3></div>
           <div id="sourceBreakdownOverview"></div>
           <div class="card-footer"><a onclick="showPage('sources')">Manage Taals</a></div>
@@ -372,6 +382,12 @@
       <div class="page" id="page-production">
         <div class="topbar" style="margin-bottom:16px;">
           <p style="margin:0;color:var(--text-dim);font-size:13px;max-width:560px;">Each run auto-calculates raw material consumed from output, wastage %, and conveyor speeds, and deducts it from stock.</p>
+        </div>
+        <div class="tabs" style="margin-bottom:16px;">
+          <div class="tab active" data-prodrange="all" onclick="setProdRange('all')">All time</div>
+          <div class="tab" data-prodrange="30" onclick="setProdRange('30')">30 days</div>
+          <div class="tab" data-prodrange="7" onclick="setProdRange('7')">7 days</div>
+          <div class="tab" data-prodrange="1" onclick="setProdRange('1')">Today</div>
         </div>
         <div class="card">
           <div class="card-head"><h3>Production Runs</h3></div>
@@ -463,6 +479,17 @@
           </div>
           <button class="btn-primary" onclick="saveConfig()">Save settings</button>
           <button class="btn-ghost" style="margin-left:14px;" onclick="resetAll()">Reset all data</button>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <div class="card-head"><h3>Data Backup &amp; Restore</h3></div>
+          <p style="font-size:12.5px;color:var(--text-dim);margin:0 0 14px;">Export everything logged in this app to CSV files as a safety backup, or restore/merge from a previous export. This is separate from Zoho Books — it only covers what's stored in this app.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button class="btn-secondary" onclick="exportCSV()">⬇ Export All Data (CSV)</button>
+            <button class="btn-secondary" onclick="document.getElementById('csvImportInput').click()">⬆ Upload / Restore Data</button>
+            <input type="file" id="csvImportInput" accept=".zip" style="display:none" onchange="handleCSVFileSelected(event)">
+          </div>
+          <p id="csvImportFileName" style="font-size:12px;color:var(--text-dim);margin:10px 0 0;"></p>
         </div>
       </div>
 
@@ -660,11 +687,41 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="snapshotModalBackdrop">
+  <div class="modal" style="max-width:440px;">
+    <h3>Export Snapshot</h3>
+    <p style="font-size:12.5px;color:var(--text-dim);margin:0 0 12px;">Pick which sections to include. They'll be combined into one clean PNG, stamped with the date and time.</p>
+    <div class="snapshot-tile-actions">
+      <a onclick="snapshotSelectAll(true)">Select all</a>
+      <span>·</span>
+      <a onclick="snapshotSelectAll(false)">Select none</a>
+    </div>
+    <div id="snapshotTileList" class="snapshot-tile-list"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeSnapshotModal()">Cancel</button>
+      <button class="btn-primary" id="snapshotGenerateBtn" onclick="generateSnapshot()">Generate PNG</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="csvImportModalBackdrop">
+  <div class="modal" style="max-width:420px;">
+    <h3>Restore Data</h3>
+    <p id="csvImportSummary" style="font-size:13px;color:var(--text-dim);margin-top:-6px;"></p>
+    <div class="modal-actions" style="flex-direction:column;align-items:stretch;gap:8px;margin-top:14px;">
+      <button class="btn-primary" onclick="runCSVImport('merge')">Merge with existing data</button>
+      <button class="btn-warn" onclick="runCSVImport('replace')">Replace all existing data</button>
+      <button class="btn-ghost" onclick="closeCSVImportModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const STORAGE_KEY = 'wpf-rm-inventory-data-v3';
 let data = null;
 let modalMode = 'in';
 let logRange = 'all';
+let prodRange = 'all';
 let zeroFlagMaterial = null;
 
 /* Storage shim: uses Claude's window.storage when running inside a Claude artifact,
@@ -734,8 +791,19 @@ function showPage(name){
 }
 function setRange(r){
   logRange = r;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.range===r));
+  document.querySelectorAll('#page-log .tab').forEach(t=>t.classList.toggle('active', t.dataset.range===r));
   renderLog();
+}
+function setProdRange(r){
+  prodRange = r;
+  document.querySelectorAll('#page-production .tab').forEach(t=>t.classList.toggle('active', t.dataset.prodrange===r));
+  renderProduction();
+  renderFinishedGoods();
+}
+function withinRange(dateStr, range){
+  if(range==='all') return true;
+  const cutoff = Date.now() - (parseInt(range)-1)*86400000;
+  return new Date(dateStr).getTime() >= new Date(new Date(cutoff).toDateString()).getTime();
 }
 
 /* ---- Settings ---- */
@@ -770,6 +838,192 @@ function saveConfig(){
   data.config.defaultBagWeight = parseFloat(document.getElementById('cfgDefaultBagWeight').value)||40;
   persist(); render();
 }
+/* ---- CSV Export / Import (backup & restore) ---- */
+const CSV_SCHEMAS = {
+  transactions: ['id','date','type','material','category','qty','rate','note','taalId','productionId','pipelineId'],
+  production: ['id','date','shift','product','output','wastagePct','buradaType','buradaSpeed','woodSpeed','buradaConsumed','woodConsumed','note','hoursRun','shortfallReason','shortfallNote','bags'],
+  pipeline: ['id','plate','driverName','driverPhone','truckType','estLoad','source','taalId','loadingStart','estDelivery','note','status','departureTime','arrivedTime','unloadingStartTime','deliveredDate'],
+  finishedGoods: ['id','date','product','type','bags','note','productionId'],
+  taals: ['id','name'],
+  zeroFlagsBurada: ['id','date','resetStock'],
+  zeroFlagsDevi: ['id','date','resetStock']
+};
+
+function csvEscape(val){
+  if(val===undefined || val===null) return '';
+  const s = String(val);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+  return s;
+}
+function arrayToCSV(rows, headers){
+  const lines = [headers.join(',')];
+  rows.forEach(row => { lines.push(headers.map(h => csvEscape(row[h])).join(',')); });
+  return lines.join('\n');
+}
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); field=''; rows.push(row); row=[]; }
+      else if(c === '\r'){ /* skip */ }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  if(!rows.length) return [];
+  const headers = rows[0];
+  return rows.slice(1).filter(r => r.length>1 || r[0]!=='').map(r => {
+    const obj = {};
+    headers.forEach((h,idx) => obj[h] = r[idx]!==undefined ? r[idx] : '');
+    return obj;
+  });
+}
+const CSV_NUMERIC_FIELDS = new Set(['qty','rate','output','wastagePct','buradaSpeed','woodSpeed','buradaConsumed','woodConsumed','hoursRun','bags','estLoad']);
+function coerceRow(obj){
+  const out = {};
+  Object.keys(obj).forEach(k => {
+    let v = obj[k];
+    if(k === 'resetStock') v = (v === 'true' || v === true);
+    else if(CSV_NUMERIC_FIELDS.has(k) && v !== '') v = parseFloat(v);
+    else if(v === '') v = (k==='id'||k==='date' ? v : v);
+    out[k] = v;
+  });
+  return out;
+}
+
+async function exportCSV(){
+  const btn = event && event.target ? event.target : null;
+  const original = btn ? btn.textContent : null;
+  if(btn){ btn.textContent = 'Exporting…'; btn.disabled = true; }
+  try{
+    const zip = new JSZip();
+    zip.file('transactions.csv', arrayToCSV(data.transactions, CSV_SCHEMAS.transactions));
+    zip.file('production.csv', arrayToCSV(data.production, CSV_SCHEMAS.production));
+    zip.file('pipeline.csv', arrayToCSV(data.pipeline, CSV_SCHEMAS.pipeline));
+    zip.file('finished_goods.csv', arrayToCSV(data.finishedGoods, CSV_SCHEMAS.finishedGoods));
+    zip.file('taals.csv', arrayToCSV(data.taals, CSV_SCHEMAS.taals));
+    zip.file('wastage_zero_flags_burada.csv', arrayToCSV(data.wastage.zeroFlags.burada, CSV_SCHEMAS.zeroFlagsBurada));
+    zip.file('wastage_zero_flags_devi.csv', arrayToCSV(data.wastage.zeroFlags.devi, CSV_SCHEMAS.zeroFlagsDevi));
+    const configRows = Object.keys(data.config).map(k => ({key:k, value:data.config[k]}));
+    zip.file('config.csv', arrayToCSV(configRows, ['key','value']));
+
+    const blob = await zip.generateAsync({type:'blob'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const now = new Date();
+    const stamp = now.toISOString().slice(0,10) + '_' + now.toTimeString().slice(0,5).replace(':','-');
+    link.download = `wpf-inventory-export-${stamp}.zip`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    console.error('CSV export failed', e);
+    alert('Export failed. Please try again.');
+  }
+  if(btn){ btn.textContent = original; btn.disabled = false; }
+}
+
+let pendingImport = null;
+
+async function handleCSVFileSelected(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  document.getElementById('csvImportFileName').textContent = 'Selected: ' + file.name;
+  try{
+    const zip = await JSZip.loadAsync(file);
+    const readCSV = async (name) => {
+      const f = zip.file(name);
+      if(!f) return [];
+      const text = await f.async('string');
+      return parseCSV(text).map(coerceRow);
+    };
+    const imported = {
+      transactions: await readCSV('transactions.csv'),
+      production: await readCSV('production.csv'),
+      pipeline: await readCSV('pipeline.csv'),
+      finishedGoods: await readCSV('finished_goods.csv'),
+      taals: await readCSV('taals.csv'),
+      zeroFlagsBurada: await readCSV('wastage_zero_flags_burada.csv'),
+      zeroFlagsDevi: await readCSV('wastage_zero_flags_devi.csv'),
+      config: await readCSV('config.csv')
+    };
+    if(!imported.transactions.length && !imported.production.length && !imported.pipeline.length &&
+       !imported.finishedGoods.length && !imported.taals.length && !imported.config.length){
+      alert('This file doesn\'t look like a valid WPF Inventory export. No recognizable data found.');
+      evt.target.value = '';
+      return;
+    }
+    pendingImport = imported;
+    document.getElementById('csvImportSummary').textContent =
+      `Found ${imported.transactions.length} transactions, ${imported.production.length} production runs, `+
+      `${imported.pipeline.length} pipeline entries, ${imported.finishedGoods.length} finished goods records, `+
+      `${imported.taals.length} Taals. Choose how to apply this:`;
+    document.getElementById('csvImportModalBackdrop').classList.add('open');
+  }catch(e){
+    console.error('CSV import read failed', e);
+    alert('Could not read that file. Make sure it\'s a ZIP exported from this app.');
+  }
+  evt.target.value = '';
+}
+
+function closeCSVImportModal(){
+  document.getElementById('csvImportModalBackdrop').classList.remove('open');
+  document.getElementById('csvImportFileName').textContent = '';
+  pendingImport = null;
+}
+
+function runCSVImport(mode){
+  if(!pendingImport) return;
+  const imp = pendingImport;
+
+  if(mode === 'replace'){
+    data.transactions = imp.transactions;
+    data.production = imp.production;
+    data.pipeline = imp.pipeline;
+    data.finishedGoods = imp.finishedGoods;
+    data.taals = imp.taals;
+    data.wastage.zeroFlags.burada = imp.zeroFlagsBurada;
+    data.wastage.zeroFlags.devi = imp.zeroFlagsDevi;
+  } else {
+    const mergeById = (existing, incoming) => {
+      const map = new Map(existing.map(r => [r.id, r]));
+      incoming.forEach(r => map.set(r.id, r));
+      return Array.from(map.values());
+    };
+    data.transactions = mergeById(data.transactions, imp.transactions);
+    data.production = mergeById(data.production, imp.production);
+    data.pipeline = mergeById(data.pipeline, imp.pipeline);
+    data.finishedGoods = mergeById(data.finishedGoods, imp.finishedGoods);
+    data.taals = mergeById(data.taals, imp.taals);
+    data.wastage.zeroFlags.burada = mergeById(data.wastage.zeroFlags.burada, imp.zeroFlagsBurada);
+    data.wastage.zeroFlags.devi = mergeById(data.wastage.zeroFlags.devi, imp.zeroFlagsDevi);
+  }
+
+  if(imp.config && imp.config.length){
+    imp.config.forEach(row => {
+      if(row.key === undefined) return;
+      let v = row.value;
+      const n = parseFloat(v);
+      data.config[row.key] = isNaN(n) ? v : n;
+    });
+  }
+
+  persist();
+  populateSettingsFields();
+  render();
+  closeCSVImportModal();
+  alert('Data restored successfully.');
+}
+
 function resetAll(){
   if(!confirm('This clears all logged deliveries, usage, production, Taals and settings. Continue?')) return;
   data = JSON.parse(JSON.stringify(defaultData));
@@ -1507,9 +1761,10 @@ function deleteFinishedGoodsEntry(id){
   persist(); render();
 }
 function renderProduction(){
-  const runs = [...data.production].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  let runs = [...data.production].filter(p => withinRange(p.date, prodRange));
+  runs.sort((a,b)=>new Date(b.date)-new Date(a.date));
   const body = document.getElementById('productionBody');
-  if(runs.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="11">No production runs logged yet.</td></tr>'; return; }
+  if(runs.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="11">No production runs in this range.</td></tr>'; return; }
   const prodNames = {blaze:'Blaze', master:'Master', signatureGold:'Signature Gold'};
   const reasonLabels = {raw_material_shortage:'RM Shortage', machine_malfunction:'Malfunction', power_outage:'Power Outage', scheduled_maintenance:'Maintenance', other:'Other'};
   body.innerHTML = runs.map(p=>{
@@ -1537,8 +1792,8 @@ function renderProduction(){
 function renderFinishedGoods(){
   const body = document.getElementById('finishedGoodsBody');
   if(!body) return;
-  const entries = [...data.finishedGoods].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  if(entries.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="6">No finished goods activity logged yet.</td></tr>'; return; }
+  const entries = [...data.finishedGoods].filter(f => withinRange(f.date, prodRange)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(entries.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="6">No finished goods activity in this range.</td></tr>'; return; }
   body.innerHTML = entries.map(f=>{
     const typeLabel = f.type==='produced' ? `<span class="badge good">Produced</span>` : `<span class="badge info">Sold</span>`;
     return `<tr>
@@ -1802,29 +2057,141 @@ function render(){
   renderPipeline();
 }
 
+const SNAPSHOT_TILE_DEFS = [
+  {id:'stockoutAlertBanner', label:'Stockout Risk Alert'},
+  {id:'tile-silos', label:'Inventory Monitoring (Silos + Purchase Averages)'},
+  {id:'tile-runway', label:'Production Runway'},
+  {id:'tile-efficiency', label:'Active Machine Efficiency'},
+  {id:'tile-wastagerow', label:'Wastage / Bareek-Mota / Production This Month'},
+  {id:'tile-finishedgoods', label:'Finished Goods (Bags in Stock)'},
+  {id:'tile-pipeline', label:'Trucks in Pipeline'},
+  {id:'tile-sourcebreakdown', label:'Devi Wood Source Breakdown'}
+];
+const SNAPSHOT_PREF_KEY = 'wpf-snapshot-tile-prefs';
+
 function exportSnapshot(){
+  const pageName = (document.querySelector('.nav-item.active') || {}).dataset ? document.querySelector('.nav-item.active').dataset.page : 'overview';
+  if(pageName !== 'overview'){
+    exportWholePage(pageName);
+    return;
+  }
+  openSnapshotModal();
+}
+
+function exportWholePage(pageName){
   const btn = event && event.target ? event.target : null;
   const activeEl = document.querySelector('.page.active');
   if(!activeEl){ alert('Nothing to export.'); return; }
-  const pageName = (document.querySelector('.nav-item.active') || {}).dataset ? document.querySelector('.nav-item.active').dataset.page : 'overview';
   const original = btn ? btn.textContent : null;
   if(btn){ btn.textContent = 'Exporting…'; btn.disabled = true; }
-  html2canvas(activeEl, {
-    backgroundColor: '#F3F5F8',
-    scale: 2,
-    useCORS: true
-  }).then(canvas => {
-    const link = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0,10);
-    link.download = `wpf-inventory-${pageName}-${stamp}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+  html2canvas(activeEl, { backgroundColor:'#F3F5F8', scale:2, useCORS:true }).then(canvas => {
+    downloadStampedCanvas([canvas], pageName);
     if(btn){ btn.textContent = original; btn.disabled = false; }
   }).catch(err => {
     console.error('Snapshot export failed', err);
     alert('Snapshot export failed. Please try again.');
     if(btn){ btn.textContent = original; btn.disabled = false; }
   });
+}
+
+function openSnapshotModal(){
+  let prefs = {};
+  try{ prefs = JSON.parse(localStorage.getItem(SNAPSHOT_PREF_KEY) || '{}'); }catch(e){}
+  const list = document.getElementById('snapshotTileList');
+  list.innerHTML = SNAPSHOT_TILE_DEFS.map(t => {
+    const el = document.getElementById(t.id);
+    const hasContent = el && el.offsetHeight > 0 && el.innerText.trim().length > 0;
+    const checked = prefs.hasOwnProperty(t.id) ? prefs[t.id] : true;
+    return `<div class="snapshot-tile-row ${hasContent ? '' : 'disabled'}" onclick="document.getElementById('${t.id}-chk').click()">
+      <input type="checkbox" id="${t.id}-chk" data-tile="${t.id}" ${checked && hasContent ? 'checked' : ''} ${hasContent ? '' : 'disabled'} onclick="event.stopPropagation()">
+      <label>${t.label}${hasContent ? '' : ' (not currently showing)'}</label>
+    </div>`;
+  }).join('');
+  document.getElementById('snapshotModalBackdrop').classList.add('open');
+}
+
+function closeSnapshotModal(){ document.getElementById('snapshotModalBackdrop').classList.remove('open'); }
+
+function snapshotSelectAll(state){
+  document.querySelectorAll('#snapshotTileList input[type="checkbox"]:not(:disabled)').forEach(cb => cb.checked = state);
+}
+
+function generateSnapshot(){
+  const checks = Array.from(document.querySelectorAll('#snapshotTileList input[type="checkbox"]'));
+  const selected = checks.filter(c => c.checked).map(c => c.dataset.tile);
+  if(selected.length === 0){ alert('Pick at least one section to include.'); return; }
+
+  const prefs = {};
+  checks.forEach(c => { prefs[c.dataset.tile] = c.checked; });
+  try{ localStorage.setItem(SNAPSHOT_PREF_KEY, JSON.stringify(prefs)); }catch(e){}
+
+  const btn = document.getElementById('snapshotGenerateBtn');
+  const original = btn.textContent;
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
+
+  const elements = selected.map(id => document.getElementById(id)).filter(Boolean);
+  const captures = elements.reduce((chain, el) => {
+    return chain.then(results => html2canvas(el, { backgroundColor:'#F3F5F8', scale:2, useCORS:true }).then(canvas => { results.push(canvas); return results; }));
+  }, Promise.resolve([]));
+
+  captures.then(canvases => {
+    downloadStampedCanvas(canvases, 'overview-snapshot');
+    btn.textContent = original;
+    btn.disabled = false;
+    closeSnapshotModal();
+  }).catch(err => {
+    console.error('Snapshot export failed', err);
+    alert('Snapshot export failed. Please try again.');
+    btn.textContent = original;
+    btn.disabled = false;
+  });
+}
+
+function downloadStampedCanvas(canvases, filenameBase){
+  const pad = 24;
+  const headerH = 66;
+  const gap = 18;
+  const width = Math.max(...canvases.map(c => c.width)) + pad * 2;
+  const contentHeight = canvases.reduce((sum, c) => sum + c.height, 0) + gap * (canvases.length - 1);
+  const height = headerH + contentHeight + pad * 2;
+
+  const master = document.createElement('canvas');
+  master.width = width;
+  master.height = height;
+  const ctx = master.getContext('2d');
+
+  ctx.fillStyle = '#F3F5F8';
+  ctx.fillRect(0, 0, width, height);
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+
+  ctx.fillStyle = '#12141A';
+  ctx.font = 'bold 26px Arial, sans-serif';
+  ctx.fillText('WPF Inventory — Snapshot', pad, 40);
+  ctx.fillStyle = '#6B7280';
+  ctx.font = '15px Arial, sans-serif';
+  ctx.fillText(`${dateStr}, ${timeStr}`, pad, 60);
+  ctx.strokeStyle = '#E4E7EC';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad, headerH - 8);
+  ctx.lineTo(width - pad, headerH - 8);
+  ctx.stroke();
+
+  let y = headerH + pad;
+  canvases.forEach(c => {
+    ctx.drawImage(c, pad, y, c.width, c.height);
+    y += c.height + gap;
+  });
+
+  const link = document.createElement('a');
+  const stamp = now.toISOString().slice(0,10) + '_' + now.toTimeString().slice(0,5).replace(':','-');
+  link.download = `wpf-inventory-${filenameBase}-${stamp}.png`;
+  link.href = master.toDataURL('image/png');
+  link.click();
 }
 
 /* --- Simple password gate ---

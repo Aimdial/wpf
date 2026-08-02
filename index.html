@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root{
     --bg-page:#F3F5F8;
@@ -202,6 +203,10 @@
   .snapshot-tile-row input[type="checkbox"]{width:17px;height:17px;flex-shrink:0;accent-color:#7FD1A6;}
   .snapshot-tile-row label{font-size:13.5px;color:var(--text);cursor:pointer;}
   .snapshot-tile-row.disabled{opacity:0.4;pointer-events:none;}
+  .sync-status{display:inline-block;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:20px;margin-top:6px;}
+  .sync-status.sync-ok{background:#E3F7EC;color:#1F9D55;}
+  .sync-status.sync-busy{background:#EEF2F6;color:#6B7280;}
+  .sync-status.sync-error{background:#FDEDEC;color:#C0392B;}
   .modal::-webkit-scrollbar{width:3px;}
   .modal::-webkit-scrollbar-button{display:none;width:0;height:0;}
   .modal::-webkit-scrollbar-thumb{background:#A7E3C3;border-radius:10px;}
@@ -274,6 +279,7 @@
         <div>
           <h1 id="pageTitle">Overview</h1>
           <p id="pageSub">Burada &amp; Devi Wood — Ali Bhai (Taals) + Akhtar</p>
+          <span id="cloudSyncStatus" class="sync-status sync-busy">☁ Connecting…</span>
         </div>
         <div class="actions">
           <button class="btn-secondary" onclick="exportSnapshot()">⬇ Export Snapshot</button>
@@ -718,6 +724,138 @@
 
 <script>
 const STORAGE_KEY = 'wpf-rm-inventory-data-v3';
+
+/* ---- Supabase cloud connection ---- */
+const SUPABASE_URL = 'https://exoxczfevsyhljhcyxtn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ml1qUeOOQEIFOFstPufDUw_4uqT1huj';
+const supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let pendingDeletes = { transactions:[], production:[], pipeline:[], finished_goods:[], taals:[], wastage_zero_flags:[] };
+let cloudSyncTimer = null;
+let realtimeChannel = null;
+
+function setSyncStatus(state){
+  const el = document.getElementById('cloudSyncStatus');
+  if(!el) return;
+  const map = {
+    synced: {text:'☁ Synced', cls:'sync-ok'},
+    syncing: {text:'☁ Syncing…', cls:'sync-busy'},
+    error: {text:'⚠ Sync error — check connection', cls:'sync-error'},
+    offline: {text:'⚠ Offline — using local copy', cls:'sync-error'}
+  };
+  const s = map[state] || map.synced;
+  el.textContent = s.text;
+  el.className = 'sync-status ' + s.cls;
+}
+
+/* Field mapping: local camelCase <-> Supabase snake_case columns */
+function mapTxnOut(t){ return {id:t.id, date:t.date, type:t.type, material:t.material, category:t.category, qty:t.qty, rate:t.rate ?? null, note:t.note ?? null, taal_id:t.taalId ?? null, production_id:t.productionId ?? null, pipeline_id:t.pipelineId ?? null}; }
+function mapTxnIn(r){ return {id:r.id, date:r.date, type:r.type, material:r.material, category:r.category, qty:Number(r.qty), rate:r.rate!=null?Number(r.rate):null, note:r.note, taalId:r.taal_id, productionId:r.production_id, pipelineId:r.pipeline_id}; }
+
+function mapProdOut(p){ return {id:p.id, date:p.date, shift:p.shift, product:p.product, output:p.output, wastage_pct:p.wastagePct ?? null, burada_type:p.buradaType ?? null, burada_speed:p.buradaSpeed ?? null, wood_speed:p.woodSpeed ?? null, burada_consumed:p.buradaConsumed ?? null, wood_consumed:p.woodConsumed ?? null, note:p.note ?? null, hours_run:p.hoursRun ?? null, shortfall_reason:p.shortfallReason ?? null, shortfall_note:p.shortfallNote ?? null, bags:p.bags ?? null}; }
+function mapProdIn(r){ return {id:r.id, date:r.date, shift:r.shift, product:r.product, output:Number(r.output), wastagePct:r.wastage_pct!=null?Number(r.wastage_pct):null, buradaType:r.burada_type, buradaSpeed:r.burada_speed!=null?Number(r.burada_speed):null, woodSpeed:r.wood_speed!=null?Number(r.wood_speed):null, buradaConsumed:r.burada_consumed!=null?Number(r.burada_consumed):null, woodConsumed:r.wood_consumed!=null?Number(r.wood_consumed):null, note:r.note, hoursRun:r.hours_run!=null?Number(r.hours_run):null, shortfallReason:r.shortfall_reason, shortfallNote:r.shortfall_note, bags:r.bags!=null?Number(r.bags):null}; }
+
+function mapPipeOut(p){ return {id:p.id, plate:p.plate ?? null, driver_name:p.driverName ?? null, driver_phone:p.driverPhone ?? null, truck_type:p.truckType ?? null, est_load:p.estLoad ?? null, source:p.source ?? null, taal_id:p.taalId ?? null, loading_start:p.loadingStart ?? null, est_delivery:p.estDelivery ?? null, note:p.note ?? null, status:p.status ?? null, departure_time:p.departureTime ?? null, arrived_time:p.arrivedTime ?? null, unloading_start_time:p.unloadingStartTime ?? null, delivered_date:p.deliveredDate ?? null}; }
+function mapPipeIn(r){ return {id:r.id, plate:r.plate, driverName:r.driver_name, driverPhone:r.driver_phone, truckType:r.truck_type, estLoad:r.est_load!=null?Number(r.est_load):null, source:r.source, taalId:r.taal_id, loadingStart:r.loading_start, estDelivery:r.est_delivery, note:r.note, status:r.status, departureTime:r.departure_time, arrivedTime:r.arrived_time, unloadingStartTime:r.unloading_start_time, deliveredDate:r.delivered_date}; }
+
+function mapFGOut(f){ return {id:f.id, date:f.date, product:f.product, type:f.type, bags:f.bags, note:f.note ?? null, production_id:f.productionId ?? null}; }
+function mapFGIn(r){ return {id:r.id, date:r.date, product:r.product, type:r.type, bags:Number(r.bags), note:r.note, productionId:r.production_id}; }
+
+function mapZeroFlagOut(z, material){ return {id:z.id, material, date:z.date, reset_stock:!!z.resetStock}; }
+function mapZeroFlagIn(r){ return {id:r.id, date:r.date, resetStock:r.reset_stock}; }
+
+async function fetchAllCloudData(){
+  const [txns, prod, pipe, fg, taals, zeroFlags, config] = await Promise.all([
+    supa.from('transactions').select('*'),
+    supa.from('production').select('*'),
+    supa.from('pipeline').select('*'),
+    supa.from('finished_goods').select('*'),
+    supa.from('taals').select('*'),
+    supa.from('wastage_zero_flags').select('*'),
+    supa.from('app_config').select('*')
+  ]);
+  const errs = [txns.error, prod.error, pipe.error, fg.error, taals.error, zeroFlags.error, config.error].filter(Boolean);
+  if(errs.length){ throw errs[0]; }
+  const out = JSON.parse(JSON.stringify(defaultData));
+  out.transactions = (txns.data||[]).map(mapTxnIn);
+  out.production = (prod.data||[]).map(mapProdIn);
+  out.pipeline = (pipe.data||[]).map(mapPipeIn);
+  out.finishedGoods = (fg.data||[]).map(mapFGIn);
+  out.taals = (taals.data||[]).map(r=>({id:r.id, name:r.name}));
+  out.wastage.zeroFlags.burada = (zeroFlags.data||[]).filter(r=>r.material==='burada').map(mapZeroFlagIn);
+  out.wastage.zeroFlags.devi = (zeroFlags.data||[]).filter(r=>r.material==='devi').map(mapZeroFlagIn);
+  (config.data||[]).forEach(row => {
+    const n = parseFloat(row.value);
+    out.config[row.key] = isNaN(n) ? row.value : n;
+  });
+  return out;
+}
+
+async function syncToCloud(){
+  setSyncStatus('syncing');
+  try{
+    const jobs = [];
+    if(data.transactions.length) jobs.push(supa.from('transactions').upsert(data.transactions.map(mapTxnOut), {onConflict:'id'}));
+    if(data.production.length) jobs.push(supa.from('production').upsert(data.production.map(mapProdOut), {onConflict:'id'}));
+    if(data.pipeline.length) jobs.push(supa.from('pipeline').upsert(data.pipeline.map(mapPipeOut), {onConflict:'id'}));
+    if(data.finishedGoods.length) jobs.push(supa.from('finished_goods').upsert(data.finishedGoods.map(mapFGOut), {onConflict:'id'}));
+    if(data.taals.length) jobs.push(supa.from('taals').upsert(data.taals, {onConflict:'id'}));
+    const zeroFlagRows = [
+      ...data.wastage.zeroFlags.burada.map(z=>mapZeroFlagOut(z,'burada')),
+      ...data.wastage.zeroFlags.devi.map(z=>mapZeroFlagOut(z,'devi'))
+    ];
+    if(zeroFlagRows.length) jobs.push(supa.from('wastage_zero_flags').upsert(zeroFlagRows, {onConflict:'id'}));
+    const configRows = Object.keys(data.config).map(k => ({key:k, value:String(data.config[k])}));
+    jobs.push(supa.from('app_config').upsert(configRows, {onConflict:'key'}));
+
+    for(const table of Object.keys(pendingDeletes)){
+      if(pendingDeletes[table].length){
+        jobs.push(supa.from(table).delete().in('id', pendingDeletes[table]));
+      }
+    }
+    const results = await Promise.all(jobs);
+    const failed = results.find(r => r && r.error);
+    if(failed) throw failed.error;
+
+    Object.keys(pendingDeletes).forEach(k => pendingDeletes[k] = []);
+    setSyncStatus('synced');
+  }catch(e){
+    console.error('Cloud sync failed', e);
+    setSyncStatus('error');
+  }
+}
+
+function queueDelete(table, id){
+  if(!pendingDeletes[table]) pendingDeletes[table] = [];
+  pendingDeletes[table].push(id);
+}
+
+function setupRealtimeSync(){
+  if(realtimeChannel) return;
+  realtimeChannel = supa.channel('wpf-inventory-changes')
+    .on('postgres_changes', {event:'*', schema:'public', table:'transactions'}, handleRemoteChange)
+    .on('postgres_changes', {event:'*', schema:'public', table:'production'}, handleRemoteChange)
+    .on('postgres_changes', {event:'*', schema:'public', table:'pipeline'}, handleRemoteChange)
+    .on('postgres_changes', {event:'*', schema:'public', table:'finished_goods'}, handleRemoteChange)
+    .on('postgres_changes', {event:'*', schema:'public', table:'taals'}, handleRemoteChange)
+    .on('postgres_changes', {event:'*', schema:'public', table:'wastage_zero_flags'}, handleRemoteChange)
+    .on('postgres_changes', {event:'*', schema:'public', table:'app_config'}, handleRemoteChange)
+    .subscribe();
+}
+
+function handleRemoteChange(){
+  clearTimeout(cloudSyncTimer);
+  cloudSyncTimer = setTimeout(async () => {
+    try{
+      data = await fetchAllCloudData();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      populateSettingsFields();
+      render();
+      setSyncStatus('synced');
+    }catch(e){
+      console.error('Remote refresh failed', e);
+    }
+  }, 400);
+}
 let data = null;
 let modalMode = 'in';
 let logRange = 'all';
@@ -751,9 +889,18 @@ const defaultData = {
 
 async function loadData(){
   try{
-    const res = await storage.get(STORAGE_KEY, false);
-    data = res && res.value ? JSON.parse(res.value) : JSON.parse(JSON.stringify(defaultData));
-  }catch(e){ data = JSON.parse(JSON.stringify(defaultData)); }
+    data = await fetchAllCloudData();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    setSyncStatus('synced');
+    setupRealtimeSync();
+  }catch(e){
+    console.error('Cloud load failed, falling back to local copy', e);
+    setSyncStatus('offline');
+    try{
+      const local = localStorage.getItem(STORAGE_KEY);
+      data = local ? JSON.parse(local) : JSON.parse(JSON.stringify(defaultData));
+    }catch(e2){ data = JSON.parse(JSON.stringify(defaultData)); }
+  }
   if(!data.taals) data.taals = [];
   if(!data.production) data.production = [];
   if(!data.pipeline) data.pipeline = [];
@@ -771,8 +918,8 @@ async function loadData(){
   render();
 }
 async function persist(){
-  try{ await storage.set(STORAGE_KEY, JSON.stringify(data), false); }
-  catch(e){ console.error('Storage save failed', e); }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  await syncToCloud();
 }
 
 function showPage(name){
@@ -981,11 +1128,21 @@ function closeCSVImportModal(){
   pendingImport = null;
 }
 
-function runCSVImport(mode){
+async function runCSVImport(mode){
   if(!pendingImport) return;
   const imp = pendingImport;
 
   if(mode === 'replace'){
+    try{
+      await Promise.all([
+        supa.from('transactions').delete().neq('id',''),
+        supa.from('production').delete().neq('id',''),
+        supa.from('pipeline').delete().neq('id',''),
+        supa.from('finished_goods').delete().neq('id',''),
+        supa.from('taals').delete().neq('id',''),
+        supa.from('wastage_zero_flags').delete().neq('id','')
+      ]);
+    }catch(e){ console.error('Cloud clear before restore failed', e); }
     data.transactions = imp.transactions;
     data.production = imp.production;
     data.pipeline = imp.pipeline;
@@ -1024,8 +1181,18 @@ function runCSVImport(mode){
   alert('Data restored successfully.');
 }
 
-function resetAll(){
+async function resetAll(){
   if(!confirm('This clears all logged deliveries, usage, production, Taals and settings. Continue?')) return;
+  try{
+    await Promise.all([
+      supa.from('transactions').delete().neq('id',''),
+      supa.from('production').delete().neq('id',''),
+      supa.from('pipeline').delete().neq('id',''),
+      supa.from('finished_goods').delete().neq('id',''),
+      supa.from('taals').delete().neq('id',''),
+      supa.from('wastage_zero_flags').delete().neq('id','')
+    ]);
+  }catch(e){ console.error('Cloud reset failed', e); }
   data = JSON.parse(JSON.stringify(defaultData));
   populateSettingsFields(); persist(); render();
 }
@@ -1042,6 +1209,7 @@ function removeTaal(id){
   const used = data.transactions.some(t=>t.taalId===id);
   if(used && !confirm('This Taal has logged deliveries. Remove it from the active list? (past entries keep their record)')) return;
   data.taals = data.taals.filter(t=>t.id!==id);
+  queueDelete('taals', id);
   persist(); render();
 }
 
@@ -1126,7 +1294,7 @@ function saveEntry(){
   persist(); closeModal(); render();
 }
 function genId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
-function deleteEntry(id){ data.transactions = data.transactions.filter(t=>t.id!==id); persist(); render(); }
+function deleteEntry(id){ data.transactions = data.transactions.filter(t=>t.id!==id); queueDelete('transactions', id); persist(); render(); }
 
 /* ---- Truck Pipeline ---- */
 let convertingPipelineId = null;
@@ -1177,6 +1345,7 @@ function cancelPipelineTruck(id){
 }
 function deletePipelineEntry(id){
   data.pipeline = data.pipeline.filter(p=>p.id!==id);
+  queueDelete('pipeline', id);
   persist(); render();
 }
 let stagingPipelineId = null, stagingNextStatus = null, stagingTimeField = null;
@@ -1576,6 +1745,7 @@ function confirmZeroFlag(resetStock){
 }
 function removeZeroFlag(material, id){
   data.wastage.zeroFlags[material] = data.wastage.zeroFlags[material].filter(f=>f.id!==id);
+  queueDelete('wastage_zero_flags', id);
   persist(); render();
 }
 function renderZeroFlags(){
@@ -1730,9 +1900,14 @@ function saveProduction(){
   persist(); closeProductionModal(); render();
 }
 function deleteProductionRun(id){
+  const linkedTxnIds = data.transactions.filter(t=>t.productionId===id).map(t=>t.id);
+  const linkedFgIds = data.finishedGoods.filter(f=>f.productionId===id).map(f=>f.id);
   data.production = data.production.filter(p=>p.id!==id);
   data.transactions = data.transactions.filter(t=>t.productionId!==id);
   data.finishedGoods = data.finishedGoods.filter(f=>f.productionId!==id);
+  queueDelete('production', id);
+  linkedTxnIds.forEach(tid => queueDelete('transactions', tid));
+  linkedFgIds.forEach(fid => queueDelete('finished_goods', fid));
   persist(); render();
 }
 function openSaleModal(){
@@ -1758,6 +1933,7 @@ function computeFinishedGoodsBalance(product){
 }
 function deleteFinishedGoodsEntry(id){
   data.finishedGoods = data.finishedGoods.filter(f=>f.id!==id);
+  queueDelete('finished_goods', id);
   persist(); render();
 }
 function renderProduction(){

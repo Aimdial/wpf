@@ -828,8 +828,9 @@
     <div class="net-preview" id="productionPreview">Total RM consumed: — kg</div>
     <div class="field"><label>Hours Run (shift is normally 10 hours)</label><input type="number" id="pHoursRun" min="0" max="10" step="0.5" value="10" oninput="onHoursRunChange()"></div>
     <div class="field" id="pReasonField" style="display:none;">
-      <label>Reason for shortfall</label>
+      <label>Reason for partial hours</label>
       <select id="pReason" onchange="onReasonChange()">
+        <option value="product_changeover">Product Changeover (switched to another product mid-shift)</option>
         <option value="raw_material_shortage">Raw Material Shortage</option>
         <option value="machine_malfunction">Machine Malfunction</option>
         <option value="power_outage">Power Outage</option>
@@ -2259,7 +2260,7 @@ function openProductionModal(){
   document.getElementById('pNote').value = '';
   document.getElementById('pWastage').value = (getActiveWastage().pct*100).toFixed(1);
   document.getElementById('pHoursRun').value = 10;
-  document.getElementById('pReason').value = 'raw_material_shortage';
+  document.getElementById('pReason').value = 'product_changeover';
   document.getElementById('pReasonNote').value = '';
   document.getElementById('pReasonField').style.display = 'none';
   document.getElementById('pReasonNoteField').style.display = 'none';
@@ -2384,7 +2385,7 @@ function renderProduction(){
   const body = document.getElementById('productionBody');
   if(runs.length===0){ body.innerHTML = '<tr class="empty-row"><td colspan="11">No production runs in this range.</td></tr>'; return; }
   const prodNames = {blaze:'Blaze', master:'Master', signatureGold:'Signature Gold'};
-  const reasonLabels = {raw_material_shortage:'RM Shortage', machine_malfunction:'Malfunction', power_outage:'Power Outage', scheduled_maintenance:'Maintenance', other:'Other'};
+  const reasonLabels = {product_changeover:'Product Changeover', raw_material_shortage:'RM Shortage', machine_malfunction:'Malfunction', power_outage:'Power Outage', scheduled_maintenance:'Maintenance', other:'Other'};
   body.innerHTML = runs.map(p=>{
     const hoursDisplay = p.hoursRun!=null ? p.hoursRun : 10;
     let reasonDisplay = '—';
@@ -2837,14 +2838,19 @@ function downloadStampedCanvas(canvases, filenameBase){
    NOTE: this is a soft gate (keeps casual visitors out) — not real security,
    since the password is visible in the page's source code. */
 const LOCK_PASSWORD = 'WPF2026';
+const VIEW_PASSWORD = 'WPFVIEW2026';
 const LOCK_SESSION_KEY = 'wpf-inventory-unlocked';
+const VIEW_MODE_KEY = 'wpf-view-only-mode';
 
 function checkLockPassword(){
   const input = document.getElementById('lockInput');
   const err = document.getElementById('lockError');
   if(input.value === LOCK_PASSWORD){
-    try{ localStorage.setItem(LOCK_SESSION_KEY, 'yes'); }catch(e){}
-    unlockApp();
+    try{ localStorage.setItem(LOCK_SESSION_KEY, 'yes'); localStorage.setItem(VIEW_MODE_KEY, '0'); }catch(e){}
+    unlockApp(false);
+  }else if(input.value === VIEW_PASSWORD){
+    try{ localStorage.setItem(LOCK_SESSION_KEY, 'yes'); localStorage.setItem(VIEW_MODE_KEY, '1'); }catch(e){}
+    unlockApp(true);
   }else{
     err.textContent = 'Incorrect password. Please try again.';
     input.value = '';
@@ -2852,9 +2858,15 @@ function checkLockPassword(){
   }
 }
 
-function unlockApp(){
+function unlockApp(isViewOnly){
   document.getElementById('lockScreen').style.display = 'none';
   document.querySelector('.app').style.display = 'flex';
+  if(isViewOnly){
+    document.body.classList.add('view-only-mode');
+    const sub = document.querySelector('.brand-sub');
+    if(sub) sub.textContent = 'Display - Beta';
+  }
+  applyViewOnlyRestrictions();
   loadData();
 }
 
@@ -2875,13 +2887,52 @@ function toggleSidebar(){
 })();
 
 (function initLock(){
-  let alreadyUnlocked = false;
-  try{ alreadyUnlocked = localStorage.getItem(LOCK_SESSION_KEY) === 'yes'; }catch(e){}
+  let alreadyUnlocked = false, isViewOnly = false;
+  try{
+    alreadyUnlocked = localStorage.getItem(LOCK_SESSION_KEY) === 'yes';
+    isViewOnly = localStorage.getItem(VIEW_MODE_KEY) === '1';
+  }catch(e){}
   if(alreadyUnlocked){
-    unlockApp();
+    unlockApp(isViewOnly);
   }else{
     document.getElementById('lockInput').focus();
   }
+})();
+
+/* --- View-only mode: hides every mutating control app-wide, self-healing across re-renders ---
+   NOTE: this is a convenience/UI gate for staff who should only look, not a security boundary —
+   both passwords unlock the same underlying data. */
+const VIEW_ONLY_BLOCKED_FUNCS = [
+  'addTaal','removeTaal','deleteEntry','deleteFinishedGoodsEntry','deletePipelineEntry','deleteProductionRun',
+  'exportCSV','exportSnapshot','generateSnapshot','snapshotSelectAll',
+  'openEstimateModal','openModal','openPipelineConvertModal','openPipelineEditModal','openPipelineIssueModal',
+  'openPipelineModal','openPipelineStageModal','openProductionModal','openSaleModal','openZeroFlagModal',
+  'pipelineGoBack','pipelineResolveIssue','cancelPipelineTruck','removeZeroFlag','resetAll','runCSVImport',
+  'saveConfig','saveEntry','saveEstimate','savePipelineConvert','savePipelineEdit','savePipelineIssue',
+  'savePipelineStage','savePipelineTruck','saveProduction','saveSale','togglePipelineMenu','confirmZeroFlag',
+  'handleCSVFileSelected'
+];
+function applyViewOnlyRestrictions(){
+  if(!document.body.classList.contains('view-only-mode')) return;
+  document.querySelectorAll('[onclick]').forEach(el=>{
+    const oc = el.getAttribute('onclick') || '';
+    if(oc.includes("csvImportInput')") || VIEW_ONLY_BLOCKED_FUNCS.some(fn => oc.includes(fn+'('))){
+      el.style.display = 'none';
+    }
+  });
+  document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display = 'none');
+  const csvInput = document.getElementById('csvImportInput');
+  if(csvInput) csvInput.style.display = 'none';
+}
+(function watchViewOnlyRestrictions(){
+  const target = document.querySelector('.main') || document.body;
+  let scheduled = false;
+  const observer = new MutationObserver(()=>{
+    if(scheduled) return;
+    scheduled = true;
+    setTimeout(()=>{ scheduled = false; applyViewOnlyRestrictions(); }, 50);
+  });
+  observer.observe(target, {childList:true, subtree:true});
 })();
 </script>
 </body>

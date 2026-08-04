@@ -18,7 +18,17 @@
 <style>
   :root{
     --bg-page:#F3F5F8;
-    --sidebar-bg:#FFFFFF;
+    --sidebar-bg:#1B1E2B;
+    --sidebar-border:rgba(0,0,0,0.25);
+    --sidebar-text:#9AA1B5;
+    --sidebar-text-hover:#FFFFFF;
+    --sidebar-hover-bg:#282C3D;
+    --sidebar-active-bg:#25C16F;
+    --sidebar-active-text:#FFFFFF;
+    --sidebar-brand-text:#FFFFFF;
+    --sidebar-brand-sub:rgba(255,255,255,0.4);
+    --sidebar-toggle-bg:rgba(255,255,255,0.08);
+    --sidebar-toggle-bg-hover:rgba(255,255,255,0.16);
     --card-bg:#FFFFFF;
     --border:#E6E9EF;
     --text:#12141A;
@@ -41,15 +51,35 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg-page);color:var(--text);font-family:var(--body);}
   .app{display:flex;min-height:100vh;}
+  @media(min-width:721px){
+    .app{height:100vh;}
+    .sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;}
+    .main{height:100vh;overflow-y:auto;}
+  }
 
-  .sidebar{width:230px;flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--border);padding:20px 14px;display:flex;flex-direction:column;}
-  .brand{font-weight:700;font-size:15px;padding:8px 10px 20px;color:var(--text);letter-spacing:0.2px;}
-  .brand span{display:block;font-weight:400;font-size:11px;color:var(--text-faint);margin-top:2px;}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--text-dim);font-size:13.5px;font-weight:500;cursor:pointer;margin-bottom:2px;}
-  .nav-item svg{width:17px;height:17px;flex-shrink:0;}
-  .nav-item:hover{background:#F5F7FA;}
-  .nav-item.active{background:var(--blue-soft);color:var(--blue);}
-  .nav-item.active svg{stroke:var(--blue);}
+  .sidebar{width:230px;flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--sidebar-border);padding:20px 14px;display:flex;flex-direction:column;transition:width 0.18s ease,padding 0.18s ease;position:relative;}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;padding:8px 10px 20px;color:var(--sidebar-brand-text);letter-spacing:0.2px;white-space:nowrap;overflow:hidden;}
+  .brand-logo{width:26px;height:26px;flex-shrink:0;object-fit:contain;}
+  .brand span.brand-sub{display:block;font-weight:400;font-size:11px;color:var(--sidebar-brand-sub);margin-top:2px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--sidebar-text);font-size:13.5px;font-weight:500;cursor:pointer;margin-bottom:2px;white-space:nowrap;overflow:hidden;}
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;stroke:currentColor;}
+  .nav-item:hover{background:var(--sidebar-hover-bg);color:var(--sidebar-text-hover);}
+  .nav-item.active{background:var(--sidebar-active-bg);color:var(--sidebar-active-text);}
+  .nav-item.active svg{stroke:var(--sidebar-active-text);}
+
+  .sidebar.collapsed{width:68px;padding-left:10px;padding-right:10px;}
+  .sidebar.collapsed .brand{padding-left:0;padding-right:0;justify-content:center;}
+  .sidebar.collapsed .brand-full{display:none;}
+  .sidebar.collapsed .brand-short{display:none;}
+  .brand-short{display:none;font-weight:700;font-size:15px;}
+  .sidebar.collapsed .nav-item{justify-content:center;padding:10px 0;}
+  .sidebar.collapsed .nav-label{display:none;}
+  .sidebar-toggle-wrap{margin-top:auto;display:flex;justify-content:flex-end;padding-top:10px;}
+  .sidebar.collapsed .sidebar-toggle-wrap{justify-content:center;}
+  .sidebar-toggle-btn{background:var(--sidebar-toggle-bg);border:none;border-radius:8px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--sidebar-text);flex-shrink:0;}
+  .sidebar-toggle-btn:hover{background:var(--sidebar-toggle-bg-hover);color:#fff;}
+  .sidebar-toggle-btn svg{width:16px;height:16px;transition:transform 0.18s ease;}
+  .sidebar.collapsed .sidebar-toggle-btn svg{transform:rotate(180deg);}
 
   .main{flex:1;min-width:0;padding:28px 32px 60px;}
   .topbar{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:22px;}
@@ -82,15 +112,15 @@
     .sidebar{display:none;}
     .mobile-bottom-nav{
       display:flex; position:fixed; left:0; right:0; bottom:0; z-index:50;
-      background:rgba(255,255,255,0.92); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-      border-top:1px solid var(--border); padding:8px 6px calc(8px + env(safe-area-inset-bottom));
-      justify-content:space-between; box-shadow:0 -2px 10px rgba(0,0,0,0.06);
+      background:var(--sidebar-bg);
+      border-top:1px solid var(--sidebar-border); padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+      justify-content:space-between; box-shadow:0 -2px 10px rgba(0,0,0,0.25);
     }
     .mobile-bottom-nav .nav-item{
-      flex:1; display:flex; align-items:center; justify-content:center; margin:0; padding:8px 4px; border-radius:10px; color:var(--text-dim);
+      flex:1; display:flex; align-items:center; justify-content:center; margin:0; padding:8px 4px; border-radius:10px; color:var(--sidebar-text);
     }
     .mobile-bottom-nav .nav-item svg{width:22px;height:22px;}
-    .mobile-bottom-nav .nav-item.active{color:var(--blue); background:#EEF4FF;}
+    .mobile-bottom-nav .nav-item.active{color:var(--sidebar-active-text); background:var(--sidebar-active-bg);}
     .main{padding-bottom:76px;}
     .actions{width:100%;} .actions button{flex:1 1 auto;}
   }
@@ -118,10 +148,48 @@
   .stockout-alert{background:var(--red-soft);border:1.5px solid var(--red);border-radius:10px;padding:14px 16px;margin-bottom:18px;}
   .stockout-alert-title{font-size:14px;font-weight:800;color:var(--red);margin-bottom:4px;}
   .stockout-alert-body{font-size:12.5px;color:#7a1f1f;line-height:1.5;}
-  .pipeline-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:#FAFBFC;}
+  .pipeline-card{border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:#FAFBFC;margin-bottom:14px;}
+  .pipeline-card:last-child{margin-bottom:0;}
   .pipeline-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;}
   .pipeline-card-meta{font-size:12px;color:var(--text-dim);margin-bottom:2px;}
-  .pipeline-card-actions{display:flex;gap:8px;margin-top:10px;}
+  .pipeline-card-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+
+  /* --- Pipeline stat cards (Truck Pipeline page summary row) --- */
+  .pipeline-stat-card{padding:16px;}
+  .pipeline-stat-label{font-size:11px;color:var(--text-faint);font-weight:600;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:8px;}
+  .pipeline-stat-value{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--text);margin-bottom:2px;}
+  .pipeline-stat-sub{font-size:11.5px;color:var(--text-dim);}
+
+  /* --- Pipeline Card v3 (flat, minimal truck tile) --- */
+  .pc3{background:#fff;border:1px solid var(--border);border-left-width:4px;border-radius:10px;padding:14px 16px;}
+  .pc3-border-green{border-left-color:var(--green);}
+  .pc3-border-amber{border-left-color:var(--amber);}
+  .pc3-border-red{border-left-color:var(--red);}
+  .pc3-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;}
+  .pc3-id{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .pc3-plate{font-size:15px;font-weight:800;color:var(--text);}
+  .pc3-top-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .pc3-line{font-size:12.5px;color:var(--text-dim);margin-bottom:4px;}
+  .pc3-info-line{color:var(--text-dim);}
+  .pc3-time-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .pc3-time-main{font-family:var(--mono);font-weight:700;font-size:13.5px;color:var(--text);}
+  .pc3-time-main.is-amber{color:var(--amber);}
+  .pc3-time-main.is-red{color:var(--red);}
+  .pc3-time-sub{font-size:11.5px;color:var(--text-faint);}
+  .pc3-issue-note{font-size:12.5px;color:var(--text-dim);background:var(--red-soft);border-radius:8px;padding:8px 10px;margin:6px 0;font-style:italic;}
+  .pc3-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .pc3-btn{flex:1 1 auto;min-width:140px;padding:9px 14px;}
+  .pc3-menu-wrap{position:relative;flex:0 0 auto;}
+  .pc3-menu-btn{background:none;border:none;width:28px;height:28px;font-size:17px;color:var(--text-faint);cursor:pointer;line-height:1;border-radius:6px;}
+  .pc3-menu-btn:hover{background:#F1F2F4;color:var(--text-dim);}
+  .pc3-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,0.14);min-width:190px;z-index:20;overflow:hidden;}
+  .pc3-menu.open{display:block;}
+  .pc3-menu-item{padding:10px 14px;font-size:13px;color:var(--text-dim);cursor:pointer;white-space:nowrap;}
+  .pc3-menu-item:hover{background:#F5F7FA;color:var(--text);}
+  .pc3-menu-item.is-warn:hover{background:var(--red-soft);color:var(--red);}
+  @media(max-width:480px){
+    .pc3-btn{min-width:100%;}
+  }
 
   .silo-body{display:flex;gap:16px;align-items:center;}
   .silo-gauge{width:60px;height:130px;flex-shrink:0;}
@@ -132,6 +200,12 @@
   .readout-line b{color:var(--text);font-weight:600;}
 
   .stat-big{font-family:var(--mono);font-size:30px;font-weight:700;letter-spacing:-0.5px;margin-bottom:10px;}
+  .silo-delivered-today{margin-top:16px;padding-top:12px;border-top:1px solid var(--border);}
+  .today-delivered{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;font-size:12.5px;color:var(--text-dim);}
+  .today-delivered .td-label{font-weight:600;color:var(--text-faint);text-transform:uppercase;font-size:10.5px;letter-spacing:0.4px;}
+  .today-delivered .td-value{font-family:var(--mono);}
+  .today-delivered .td-value strong{font-size:14px;color:var(--text);}
+  .today-delivered-sub{margin-top:4px;font-size:11.5px;color:var(--text-faint);font-family:var(--mono);}
   .stat-big span{font-size:13px;color:var(--text-dim);font-weight:400;margin-left:6px;}
   .pill-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
   .pill{flex:1;min-width:130px;border-radius:10px;padding:10px 12px;}
@@ -180,6 +254,8 @@
   .empty-row td{color:var(--text-faint);font-family:var(--body);text-align:center;padding:30px;white-space:normal;}
   .del-btn{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:15px;}
   .del-btn:hover{color:var(--red);}
+  .edit-btn{background:none;border:none;color:var(--text-faint);cursor:pointer;font-size:14px;margin-right:4px;}
+  .edit-btn:hover{color:var(--blue,#2563eb);}
   .table-scroll{overflow-x:auto;}
 
   .modal-backdrop{position:fixed;inset:0;background:rgba(16,20,30,0.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
@@ -256,35 +332,44 @@
 </div>
 
 <div class="app">
-  <div class="sidebar">
-    <div class="brand">WPF Inventory<span>Raw Material Monitor</span></div>
-    <div class="nav-item active" data-page="overview" onclick="showPage('overview')">
+  <div class="sidebar" id="mainSidebar">
+    <div class="brand">
+      <img class="brand-logo" src="data:image/png;base64,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" alt="WPF logo">
+      <span class="brand-full">WPF Monitor<span class="brand-sub">Beta</span></span>
+      <span class="brand-short">WPF</span>
+    </div>
+    <div class="nav-item active" data-page="overview" onclick="showPage('overview')" title="Overview">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h7v7"/></svg>
-      Overview
+      <span class="nav-label">Overview</span>
     </div>
-    <div class="nav-item" data-page="sources" onclick="showPage('sources')">
+    <div class="nav-item" data-page="sources" onclick="showPage('sources')" title="Sources">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7.5v9L12 21l-9-4.5v-9L12 3z"/><path d="M3 7.5l9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
-      Sources
+      <span class="nav-label">Sources</span>
     </div>
-    <div class="nav-item" data-page="pipeline" onclick="showPage('pipeline')">
+    <div class="nav-item" data-page="pipeline" onclick="showPage('pipeline')" title="Truck Pipeline">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/><path d="M9 12h2"/></svg>
-      Truck Pipeline
+      <span class="nav-label">Truck Pipeline</span>
     </div>
-    <div class="nav-item" data-page="production" onclick="showPage('production')">
+    <div class="nav-item" data-page="production" onclick="showPage('production')" title="Production">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V10l5 3v-3l5 3v-3l5 3v8H3z"/><path d="M3 21h18"/></svg>
-      Production
+      <span class="nav-label">Production</span>
     </div>
-    <div class="nav-item" data-page="log" onclick="showPage('log')">
+    <div class="nav-item" data-page="log" onclick="showPage('log')" title="Activity Log">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
-      Activity Log
+      <span class="nav-label">Activity Log</span>
     </div>
-    <div class="nav-item" data-page="checks" onclick="showPage('checks')">
+    <div class="nav-item" data-page="checks" onclick="showPage('checks')" title="Stock Check">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 7v3M10 7v4M14 7v3M18 7v4"/></svg>
-      Stock Check
+      <span class="nav-label">Stock Check</span>
     </div>
-    <div class="nav-item" data-page="settings" onclick="showPage('settings')">
+    <div class="nav-item" data-page="settings" onclick="showPage('settings')" title="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 11-4 0v-.2a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.2a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9.5a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.2a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9.5a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.2a1.7 1.7 0 00-1.5 1z"/></svg>
-      Settings
+      <span class="nav-label">Settings</span>
+    </div>
+    <div class="sidebar-toggle-wrap">
+      <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse/expand menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
+      </button>
     </div>
   </div>
 
@@ -336,7 +421,7 @@
         <div class="grid grid-3" id="tile-silos" style="margin-bottom:18px;">
           <div class="card" id="siloBuradaCard"></div>
           <div class="card" id="siloDeviCard"></div>
-          <div class="card">
+          <div class="card" id="tile-deliveries">
             <div class="card-head"><h3>Purchase Averages</h3></div>
             <div id="overviewAverages"></div>
             <div class="card-footer"><a onclick="showPage('sources')">View sources</a></div>
@@ -410,6 +495,7 @@
           <p style="margin:0;color:var(--text-dim);font-size:13px;max-width:620px;">Log a truck when loading starts at a Taal or via Akhtar, so the team has advance notice before it physically arrives. Trucks that show up without being logged here can still be entered directly using <strong>+ Log Purchase / Delivery</strong>.</p>
           <button class="btn-primary" onclick="openPipelineModal()">+ Log Truck (Loading Started)</button>
         </div>
+        <div class="grid grid-3" id="pipelineStatsRow" style="margin-bottom:18px;"></div>
         <div class="card" style="margin-bottom:18px;">
           <div class="card-head"><h3>Trucks Currently in Pipeline</h3></div>
           <div id="pipelinePendingList"></div>
@@ -580,9 +666,6 @@
 <div class="modal-backdrop" id="pipelineModalBackdrop">
   <div class="modal" style="max-width:480px;">
     <h3>Log Truck — Loading Started</h3>
-    <div class="field"><label>Truck Number Plate</label><input type="text" id="tpPlate" placeholder="e.g. KHI-4521"></div>
-    <div class="field"><label>Driver Name</label><input type="text" id="tpDriverName" placeholder="e.g. Kashan"></div>
-    <div class="field"><label>Driver Phone</label><input type="text" id="tpDriverPhone" placeholder="e.g. 0300-1234567"></div>
     <div class="field"><label>Truck Type</label><input type="text" id="tpTruckType" placeholder="e.g. Mazda, Suzuki, 40ft Container"></div>
     <div class="field"><label>Source</label>
       <select id="tpSource" onchange="onPipelineSourceChange()">
@@ -595,9 +678,60 @@
     <div class="field"><label>Loading Start Time</label><input type="datetime-local" id="tpLoadingStart"></div>
     <div class="field"><label>Estimated Delivery Time</label><input type="datetime-local" id="tpEstDelivery"></div>
     <div class="field"><label>Note (optional)</label><input type="text" id="tpNote"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
+    <p style="font-size:12px;color:var(--text-faint);margin:0 0 10px;">Add these once known — not required to start</p>
+    <div class="field"><label>Truck Number Plate (optional)</label><input type="text" id="tpPlate" placeholder="e.g. KHI-4521 — add later if unknown"></div>
+    <div class="field"><label>Driver Name (optional)</label><input type="text" id="tpDriverName" placeholder="e.g. Kashan"></div>
+    <div class="field"><label>Driver Phone (optional)</label><input type="text" id="tpDriverPhone" placeholder="e.g. 0300-1234567"></div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closePipelineModal()">Cancel</button>
       <button class="btn-primary" onclick="savePipelineTruck()">Save to Pipeline</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PIPELINE TRUCK MODAL -->
+<div class="modal-backdrop" id="pipelineEditModalBackdrop">
+  <div class="modal" style="max-width:480px;">
+    <h3>Edit Truck Entry</h3>
+    <div class="field"><label>Truck Number Plate</label><input type="text" id="tpePlate" placeholder="e.g. KHI-4521"></div>
+    <div class="field"><label>Driver Name</label><input type="text" id="tpeDriverName" placeholder="e.g. Kashan"></div>
+    <div class="field"><label>Driver Phone</label><input type="text" id="tpeDriverPhone" placeholder="e.g. 0300-1234567"></div>
+    <div class="field"><label>Truck Type</label><input type="text" id="tpeTruckType" placeholder="e.g. Mazda, Suzuki, 40ft Container"></div>
+    <div class="field"><label>Source</label>
+      <select id="tpeSource" onchange="onPipelineEditSourceChange()">
+        <option value="taal">Devi Wood - Ali (Taal)</option>
+        <option value="akhtar">Devi Wood - Akhtar</option>
+      </select>
+    </div>
+    <div class="field" id="tpeTaalField"><label>Taal</label><select id="tpeTaal"></select></div>
+    <div class="field"><label>Estimated Load (kg)</label><input type="number" id="tpeEstLoad" min="0" step="1"></div>
+    <div class="field"><label>Loading Start Time</label><input type="datetime-local" id="tpeLoadingStart"></div>
+    <div class="field"><label>Estimated Delivery Time</label><input type="datetime-local" id="tpeEstDelivery"></div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="tpeNote"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closePipelineEditModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePipelineEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT ISSUE MODAL (Breakdown / Roadside Issue) -->
+<div class="modal-backdrop" id="pipelineIssueModalBackdrop">
+  <div class="modal" style="max-width:400px;">
+    <h3>Report Issue</h3>
+    <p id="pipelineIssueSummary" style="font-size:12.5px;color:var(--text-dim);margin:-6px 0 14px;"></p>
+    <div class="field"><label>Issue Type</label>
+      <select id="piType">
+        <option value="Breakdown">Breakdown</option>
+        <option value="Roadside Issue">Roadside Issue</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field"><label>Note (optional)</label><input type="text" id="piNote" placeholder="e.g. flat tyre near toll plaza"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closePipelineIssueModal()">Cancel</button>
+      <button class="btn-primary" onclick="savePipelineIssue()">Report Issue</button>
     </div>
   </div>
 </div>
@@ -1339,6 +1473,25 @@ function deleteEntry(id){ data.transactions = data.transactions.filter(t=>t.id!=
 
 /* ---- Truck Pipeline ---- */
 let convertingPipelineId = null;
+/* Timezone-safe helpers for datetime-local inputs.
+   Datetime-local inputs give/expect a naive "YYYY-MM-DDTHH:mm" string with NO timezone info.
+   If that naive string is stored as-is and later round-tripped through a timestamptz column
+   (e.g. Supabase/Postgres), it can get reinterpreted as UTC, silently shifting the displayed
+   time by the local UTC offset (+5h for Pakistan). These helpers convert explicitly at the
+   boundary so the stored value is always a true, unambiguous UTC instant. */
+function fromLocalDTValue(localStr){
+  if(!localStr) return '';
+  const d = new Date(localStr);
+  if(isNaN(d.getTime())) return '';
+  return d.toISOString();
+}
+function toLocalDTValue(isoStr){
+  if(!isoStr) return '';
+  if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(isoStr)) return isoStr; // already a naive local value (older record) — use as-is
+  const d = new Date(isoStr);
+  if(isNaN(d.getTime())) return '';
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
 function openPipelineModal(){
   document.getElementById('tpPlate').value = '';
   document.getElementById('tpDriverName').value = '';
@@ -1367,10 +1520,9 @@ function savePipelineTruck(){
   const source = document.getElementById('tpSource').value;
   const taalId = source==='taal' ? document.getElementById('tpTaal').value : null;
   const estLoad = parseFloat(document.getElementById('tpEstLoad').value)||0;
-  const loadingStart = document.getElementById('tpLoadingStart').value;
-  const estDelivery = document.getElementById('tpEstDelivery').value;
+  const loadingStart = fromLocalDTValue(document.getElementById('tpLoadingStart').value);
+  const estDelivery = fromLocalDTValue(document.getElementById('tpEstDelivery').value);
   const note = document.getElementById('tpNote').value.trim();
-  if(!plate){ alert('Please enter the truck number plate.'); return; }
   if(source==='taal' && !taalId){ alert('Please add and select a Taal first.'); return; }
   if(!loadingStart){ alert('Please enter the loading start time.'); return; }
   if(!estDelivery){ alert('Please enter the estimated delivery time.'); return; }
@@ -1387,6 +1539,94 @@ function cancelPipelineTruck(id){
 function deletePipelineEntry(id){
   data.pipeline = data.pipeline.filter(p=>p.id!==id);
   queueDelete('pipeline', id);
+  persist(); render();
+}
+let editingPipelineId = null;
+function openPipelineEditModal(id){
+  const t = data.pipeline.find(p=>p.id===id);
+  if(!t) return;
+  editingPipelineId = id;
+  document.getElementById('tpePlate').value = t.plate || '';
+  document.getElementById('tpeDriverName').value = t.driverName || '';
+  document.getElementById('tpeDriverPhone').value = t.driverPhone || '';
+  document.getElementById('tpeTruckType').value = t.truckType || '';
+  document.getElementById('tpeSource').value = t.source;
+  document.getElementById('tpeEstLoad').value = t.estLoad || '';
+  document.getElementById('tpeNote').value = t.note || '';
+  document.getElementById('tpeLoadingStart').value = toLocalDTValue(t.loadingStart);
+  document.getElementById('tpeEstDelivery').value = toLocalDTValue(t.estDelivery);
+  populateTaalSelect('tpeTaal');
+  if(t.source==='taal') document.getElementById('tpeTaal').value = t.taalId || '';
+  onPipelineEditSourceChange();
+  document.getElementById('pipelineEditModalBackdrop').classList.add('open');
+}
+function closePipelineEditModal(){ editingPipelineId = null; document.getElementById('pipelineEditModalBackdrop').classList.remove('open'); }
+function onPipelineEditSourceChange(){
+  const src = document.getElementById('tpeSource').value;
+  document.getElementById('tpeTaalField').style.display = src==='taal' ? 'block' : 'none';
+}
+function savePipelineEdit(){
+  const t = data.pipeline.find(p=>p.id===editingPipelineId);
+  if(!t) return;
+  const source = document.getElementById('tpeSource').value;
+  const taalId = source==='taal' ? document.getElementById('tpeTaal').value : null;
+  const loadingStart = fromLocalDTValue(document.getElementById('tpeLoadingStart').value);
+  const estDelivery = fromLocalDTValue(document.getElementById('tpeEstDelivery').value);
+  if(source==='taal' && !taalId){ alert('Please add and select a Taal first.'); return; }
+  if(!loadingStart){ alert('Please enter the loading start time.'); return; }
+  if(!estDelivery){ alert('Please enter the estimated delivery time.'); return; }
+  t.plate = document.getElementById('tpePlate').value.trim();
+  t.driverName = document.getElementById('tpeDriverName').value.trim();
+  t.driverPhone = document.getElementById('tpeDriverPhone').value.trim();
+  t.truckType = document.getElementById('tpeTruckType').value.trim();
+  t.source = source;
+  t.taalId = taalId;
+  t.estLoad = parseFloat(document.getElementById('tpeEstLoad').value)||0;
+  t.loadingStart = loadingStart;
+  t.estDelivery = estDelivery;
+  t.note = document.getElementById('tpeNote').value.trim();
+  persist(); closePipelineEditModal(); render();
+}
+/* Stage order used for "Go Back" (undo a stage) — issue/cancelled/delivered are terminal-ish and excluded */
+const PIPELINE_STAGE_ORDER = ['pending','departed','arrived','unloading'];
+const PIPELINE_STAGE_TIME_FIELD = {departed:'departureTime', arrived:'arrivedTime', unloading:'unloadingStartTime'};
+function pipelineGoBack(id){
+  const t = data.pipeline.find(p=>p.id===id);
+  if(!t) return;
+  const idx = PIPELINE_STAGE_ORDER.indexOf(t.status);
+  if(idx<=0) return;
+  if(!confirm('Move this truck back to the previous stage? This will clear the timestamp recorded for the current stage.')) return;
+  const fieldToClear = PIPELINE_STAGE_TIME_FIELD[t.status];
+  if(fieldToClear) t[fieldToClear] = null;
+  t.status = PIPELINE_STAGE_ORDER[idx-1];
+  persist(); render();
+}
+let reportingIssuePipelineId = null;
+function openPipelineIssueModal(id){
+  const t = data.pipeline.find(p=>p.id===id);
+  if(!t) return;
+  reportingIssuePipelineId = id;
+  document.getElementById('pipelineIssueSummary').textContent = `${t.plate||'Truck TBD'} — ${t.driverName||'Driver n/a'} — ${pipelineSourceLabel(t)}`;
+  document.getElementById('piType').value = 'Breakdown';
+  document.getElementById('piNote').value = '';
+  document.getElementById('pipelineIssueModalBackdrop').classList.add('open');
+}
+function closePipelineIssueModal(){ reportingIssuePipelineId = null; document.getElementById('pipelineIssueModalBackdrop').classList.remove('open'); }
+function savePipelineIssue(){
+  const t = data.pipeline.find(p=>p.id===reportingIssuePipelineId);
+  if(!t) return;
+  t.preIssueStatus = t.status;
+  t.status = 'issue';
+  t.issueType = document.getElementById('piType').value;
+  t.issueNote = document.getElementById('piNote').value.trim();
+  t.issueReportedAt = new Date().toISOString();
+  persist(); closePipelineIssueModal(); render();
+}
+function pipelineResolveIssue(id){
+  const t = data.pipeline.find(p=>p.id===id);
+  if(!t) return;
+  t.status = t.preIssueStatus || 'pending';
+  t.preIssueStatus = null; t.issueType = null; t.issueNote = null; t.issueReportedAt = null;
   persist(); render();
 }
 let stagingPipelineId = null, stagingNextStatus = null, stagingTimeField = null;
@@ -1408,7 +1648,7 @@ function closePipelineStageModal(){
 function savePipelineStage(){
   const t = data.pipeline.find(p=>p.id===stagingPipelineId);
   if(!t) return;
-  const val = document.getElementById('pipelineStageTime').value;
+  const val = fromLocalDTValue(document.getElementById('pipelineStageTime').value);
   if(!val){ alert('Please enter the time.'); return; }
   t[stagingTimeField] = val;
   t.status = stagingNextStatus;
@@ -1427,7 +1667,7 @@ function pipelineCountdownInfo(t){
   const absMin = Math.round(Math.abs(diffMs)/60000);
   const h = Math.floor(absMin/60), m = absMin%60;
   const text = h>0 ? `${h}h ${m}m` : `${m}m`;
-  return { overdue, text: overdue ? `${text} overdue` : `Arriving in ${text}` };
+  return { overdue, text: overdue ? `${text} overdue` : `ETA ${text}` };
 }
 function openPipelineConvertModal(id){
   const t = data.pipeline.find(p=>p.id===id);
@@ -1495,16 +1735,25 @@ function savePipelineConvert(){
   t.deliveredDate = date;
   persist(); closePipelineConvertModal(); render();
 }
-function pipelineStageBadge(status){
+function pipelineStageBadge(status, issueType){
   if(status==='pending') return `<span class="badge na">Loading</span>`;
   if(status==='departed') return `<span class="badge info">En Route</span>`;
   if(status==='arrived') return `<span class="badge warn">Arrived — Queued</span>`;
   if(status==='unloading') return `<span class="badge unload">Unloading</span>`;
   if(status==='delivered') return `<span class="badge good">Delivered</span>`;
+  if(status==='issue') return `<span class="badge critical">⚠ ${issueType||'Issue'}</span>`;
   return `<span class="badge critical">Cancelled</span>`;
 }
 function pipelineStageActionsHTML(t){
+  if(t.status==='issue'){
+    let btns = `<button class="btn-secondary" onclick="pipelineResolveIssue('${t.id}')">Mark Resolved</button>`;
+    btns += `<button class="btn-secondary" onclick="cancelPipelineTruck('${t.id}')">Cancel Truck</button>`;
+    return btns;
+  }
   let btns = '';
+  if(PIPELINE_STAGE_ORDER.indexOf(t.status) > 0){
+    btns += `<button class="btn-secondary" onclick="pipelineGoBack('${t.id}')" title="Move back to previous stage">◀ Back</button>`;
+  }
   if(t.status==='pending'){
     btns += `<button class="btn-secondary" onclick="openPipelineStageModal('${t.id}','departed','departureTime','Mark as Departed','Departure Time')">Mark as Departed</button>`;
   } else if(t.status==='departed'){
@@ -1513,36 +1762,152 @@ function pipelineStageActionsHTML(t){
     btns += `<button class="btn-secondary" onclick="openPipelineStageModal('${t.id}','unloading','unloadingStartTime','Mark as Unloading','Unloading Start Time')">Mark as Unloading</button>`;
   }
   btns += `<button class="btn-primary" onclick="openPipelineConvertModal('${t.id}')">${t.status==='unloading' ? 'Complete Delivery (Enter Weights)' : 'Enter Final Weights'}</button>`;
-  btns += `<button class="btn-secondary" onclick="cancelPipelineTruck('${t.id}')">Cancel</button>`;
+  btns += `<button class="btn-secondary" onclick="openPipelineIssueModal('${t.id}')">Report Issue</button>`;
   return btns;
 }
+/* ---- Redesigned Pipeline Card (v2) helpers ---- */
+function fmtClock(dateStr){ return new Date(dateStr).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
+function fmtDayLabel(dateStr){
+  const d = new Date(dateStr); const now = new Date();
+  const dOnly = new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const nOnly = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const diffDays = Math.round((dOnly-nOnly)/86400000);
+  if(diffDays===0) return 'Today';
+  if(diffDays===1) return 'Tomorrow';
+  if(diffDays===-1) return 'Yesterday';
+  return d.toLocaleDateString();
+}
+function fmtFullDate(dateStr){ return new Date(dateStr).toLocaleDateString(); }
+function fmtShortDateTime(dateStr){ const d = new Date(dateStr); return `${d.getMonth()+1}/${d.getDate()}, ${fmtClock(dateStr)}`; }
+function elapsedStr(dateStr){
+  const ms = Date.now() - new Date(dateStr).getTime();
+  const absMin = Math.max(0, Math.round(ms/60000));
+  const h = Math.floor(absMin/60), m = absMin%60;
+  return h>0 ? `${h}h ${m}m` : `${m}m`;
+}
+function pc3TimeLine(t){
+  if(t.status==='pending' || t.status==='departed'){
+    const c = pipelineCountdownInfo(t);
+    return { main: c.text, sub: `${fmtDayLabel(t.estDelivery)}, ${fmtClock(t.estDelivery)}`, colorClass: c.overdue ? 'is-red' : 'is-amber' };
+  }
+  if(t.status==='arrived' && t.arrivedTime){
+    return { main: fmtClock(t.arrivedTime), sub: `${fmtDayLabel(t.arrivedTime)}, ${fmtFullDate(t.arrivedTime)} · Waiting ${elapsedStr(t.arrivedTime)}`, colorClass: '' };
+  }
+  if(t.status==='unloading' && t.unloadingStartTime){
+    return { main: fmtClock(t.unloadingStartTime), sub: `${fmtDayLabel(t.unloadingStartTime)}, ${fmtFullDate(t.unloadingStartTime)} · ${elapsedStr(t.unloadingStartTime)} so far`, colorClass: '' };
+  }
+  return { main:'', sub:'', colorClass:'' };
+}
+function pipelineCardActionButtonsHTML(t){
+  let btns = '';
+  if(t.status==='pending'){
+    btns += `<button class="btn-secondary pc3-btn" onclick="openPipelineStageModal('${t.id}','departed','departureTime','Mark as Departed','Departure Time')">Mark as Departed</button>`;
+  } else if(t.status==='departed'){
+    btns += `<button class="btn-secondary pc3-btn" onclick="openPipelineStageModal('${t.id}','arrived','arrivedTime','Mark as Arrived','Arrival Time')">Mark as Arrived</button>`;
+  } else if(t.status==='arrived'){
+    btns += `<button class="btn-secondary pc3-btn" onclick="openPipelineStageModal('${t.id}','unloading','unloadingStartTime','Mark as Unloading','Unloading Start Time')">Start Unloading</button>`;
+  }
+  btns += `<button class="btn-primary pc3-btn" onclick="openPipelineConvertModal('${t.id}')">${t.status==='unloading' ? 'Complete Delivery' : 'Enter Final Weights'}</button>`;
+  return btns;
+}
+function pipelineCardMenuHTML(t){
+  let items = '';
+  if(PIPELINE_STAGE_ORDER.indexOf(t.status) > 0){
+    items += `<div class="pc3-menu-item" onclick="closeAllPipelineMenus();pipelineGoBack('${t.id}')">◀ Back to previous stage</div>`;
+  }
+  items += `<div class="pc3-menu-item" onclick="closeAllPipelineMenus();openPipelineEditModal('${t.id}')">✏ Edit details</div>`;
+  items += `<div class="pc3-menu-item is-warn" onclick="closeAllPipelineMenus();openPipelineIssueModal('${t.id}')">⚠ Report Issue</div>`;
+  return items;
+}
+function togglePipelineMenu(id, evt){
+  if(evt) evt.stopPropagation();
+  const menu = document.getElementById('pipeline-menu-'+id);
+  if(!menu) return;
+  const wasOpen = menu.classList.contains('open');
+  closeAllPipelineMenus();
+  if(!wasOpen) menu.classList.add('open');
+}
+function closeAllPipelineMenus(){
+  document.querySelectorAll('.pc3-menu.open').forEach(m=>m.classList.remove('open'));
+}
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.pc3-menu-wrap')) closeAllPipelineMenus();
+});
+function pipelineIssueCardHTML(t){
+  return `<div class="pipeline-card pc3 pc3-border-red" data-pipeline-id="${t.id}">
+    <div class="pc3-top">
+      <div class="pc3-id"><span class="pc3-plate">${t.plate || 'Truck TBD'}</span> <span class="mat-tag devi">${pipelineSourceLabel(t)}</span></div>
+      <div class="pc3-top-right">
+        ${pipelineStageBadge(t.status, t.issueType)}
+        <div class="pc3-menu-wrap">
+          <button class="pc3-menu-btn" onclick="togglePipelineMenu('${t.id}', event)" title="More options">⋮</button>
+          <div class="pc3-menu" id="pipeline-menu-${t.id}"><div class="pc3-menu-item" onclick="closeAllPipelineMenus();openPipelineEditModal('${t.id}')">✏ Edit details</div></div>
+        </div>
+      </div>
+    </div>
+    ${t.issueNote ? `<div class="pc3-issue-note">${t.issueNote}</div>` : ''}
+    <div class="pc3-line pc3-info-line">${t.driverName||t.driverPhone||'Driver n/a'}${t.driverName&&t.driverPhone?' · '+t.driverPhone:''} · Est. ${Math.round(t.estLoad||0).toLocaleString()} kg</div>
+    <div class="pc3-actions">
+      <button class="btn-secondary pc3-btn" onclick="pipelineResolveIssue('${t.id}')">Mark Resolved</button>
+      <button class="btn-secondary pc3-btn" onclick="cancelPipelineTruck('${t.id}')">Cancel Truck</button>
+    </div>
+  </div>`;
+}
+function pipelineCardV3HTML(t){
+  if(t.status === 'issue') return pipelineIssueCardHTML(t);
+  const c = pipelineCountdownInfo(t);
+  let borderClass = 'pc3-border-green';
+  if((t.status==='pending'||t.status==='departed') && c.overdue) borderClass = 'pc3-border-red';
+  else if(t.status==='pending') borderClass = 'pc3-border-amber';
+  const tl = pc3TimeLine(t);
+  let driverPart = t.driverName || '';
+  if(t.driverPhone) driverPart += (driverPart ? ' · ' : '') + t.driverPhone;
+  const infoLine = `${driverPart || 'Driver n/a'} · Est. ${Math.round(t.estLoad||0).toLocaleString()} kg`;
+  return `<div class="pipeline-card pc3 ${borderClass}" data-pipeline-id="${t.id}">
+    <div class="pc3-top">
+      <div class="pc3-id"><span class="pc3-plate">${t.plate || 'Truck TBD'}</span> <span class="mat-tag devi">${pipelineSourceLabel(t)}</span></div>
+      <div class="pc3-top-right">
+        ${pipelineStageBadge(t.status, t.issueType)}
+        <div class="pc3-menu-wrap">
+          <button class="pc3-menu-btn" onclick="togglePipelineMenu('${t.id}', event)" title="More options">⋮</button>
+          <div class="pc3-menu" id="pipeline-menu-${t.id}">${pipelineCardMenuHTML(t)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="pc3-line pc3-info-line">${infoLine}</div>
+    ${tl.main ? `<div class="pc3-line pc3-time-line"><span class="pc3-time-main ${tl.colorClass}">${tl.main}</span><span class="pc3-time-sub">${tl.sub}</span></div>` : ''}
+    <div class="pc3-actions">
+      ${pipelineCardActionButtonsHTML(t)}
+    </div>
+  </div>`;
+}
+function pipelineStatsHTML(){
+  const active = data.pipeline.filter(p=>['pending','departed','arrived','unloading','issue'].includes(p.status));
+  const arrivedTrucks = active.filter(p=>p.status==='arrived');
+  const loadingCount = active.filter(p=>p.status==='pending').length;
+  let avgWaitText = '—';
+  if(arrivedTrucks.length){
+    const totalMin = arrivedTrucks.reduce((s,p)=>s + Math.max(0,(Date.now()-new Date(p.arrivedTime).getTime())/60000), 0);
+    const avgMin = Math.round(totalMin/arrivedTrucks.length);
+    const h = Math.floor(avgMin/60), m = avgMin%60;
+    avgWaitText = h>0 ? `${h}h ${m}m` : `${m}m`;
+  }
+  const stat = (label, value, sub) => `<div class="card pipeline-stat-card"><div class="pipeline-stat-label">${label}</div><div class="pipeline-stat-value">${value}</div><div class="pipeline-stat-sub">${sub}</div></div>`;
+  return stat('Active Trucks', active.length, 'In pipeline')
+       + stat('Arrived (Queued)', arrivedTrucks.length, 'Waiting to unload')
+       + stat('Loading', loadingCount, 'Not yet departed')
+       + stat('Avg Wait', avgWaitText, 'Across arrived trucks');
+}
 function renderPipeline(){
-  const active = data.pipeline.filter(p=>['pending','departed','arrived','unloading'].includes(p.status)).sort((a,b)=>new Date(a.estDelivery)-new Date(b.estDelivery));
+  const statsEl = document.getElementById('pipelineStatsRow');
+  if(statsEl) statsEl.innerHTML = pipelineStatsHTML();
+  const active = data.pipeline.filter(p=>['pending','departed','arrived','unloading','issue'].includes(p.status)).sort((a,b)=>new Date(a.estDelivery)-new Date(b.estDelivery));
   const pendingEl = document.getElementById('pipelinePendingList');
   if(pendingEl){
     if(active.length===0){
       pendingEl.innerHTML = '<p style="color:var(--text-faint);font-size:13px;">No trucks currently in pipeline.</p>';
     } else {
-      pendingEl.innerHTML = active.map(t=>{
-        const c = pipelineCountdownInfo(t);
-        const showCountdown = t.status==='pending' || t.status==='departed';
-        return `<div class="pipeline-card" data-pipeline-id="${t.id}">
-          <div class="pipeline-card-top">
-            <div><strong>${t.plate}</strong> <span class="mat-tag devi">${pipelineSourceLabel(t)}</span> ${pipelineStageBadge(t.status)}</div>
-            ${showCountdown ? `<span class="badge ${c.overdue?'critical':'warn'} pipeline-countdown">${c.text}</span>` : ''}
-          </div>
-          <div class="pipeline-card-meta">
-            ${t.driverName ? t.driverName : 'Driver n/a'}${t.driverPhone ? ' · '+t.driverPhone : ''} — ${t.truckType||'Truck type n/a'} — est. ${Math.round(t.estLoad||0).toLocaleString()} kg
-          </div>
-          <div class="pipeline-card-meta">${t.status==='pending' ? 'Loading since' : 'Loading Start Time'} ${new Date(t.loadingStart).toLocaleString()}</div>
-          ${t.departureTime ? `<div class="pipeline-card-meta">Departed ${new Date(t.departureTime).toLocaleString()}</div>` : ''}
-          ${t.arrivedTime ? `<div class="pipeline-card-meta">Arrived (queued) ${new Date(t.arrivedTime).toLocaleString()}</div>` : ''}
-          ${t.unloadingStartTime ? `<div class="pipeline-card-meta">Unloading started ${new Date(t.unloadingStartTime).toLocaleString()}</div>` : ''}
-          <div class="pipeline-card-actions">
-            ${pipelineStageActionsHTML(t)}
-          </div>
-        </div>`;
-      }).join('');
+      pendingEl.innerHTML = active.map(t=>pipelineCardV3HTML(t)).join('');
     }
   }
   const historyBody = document.getElementById('pipelineHistoryBody');
@@ -1553,7 +1918,7 @@ function renderPipeline(){
     } else {
       historyBody.innerHTML = all.map(t=>{
         return `<tr>
-          <td>${t.plate}</td>
+          <td>${t.plate || 'TBD'}</td>
           <td>${t.driverName||'—'}${t.driverPhone?' ('+t.driverPhone+')':''}</td>
           <td>${t.truckType||'—'}</td>
           <td>${pipelineSourceLabel(t)}</td>
@@ -1561,15 +1926,18 @@ function renderPipeline(){
           <td>${new Date(t.loadingStart).toLocaleString()}</td>
           <td>${t.departureTime ? new Date(t.departureTime).toLocaleString() : '—'}</td>
           <td>${new Date(t.estDelivery).toLocaleString()}</td>
-          <td>${pipelineStageBadge(t.status)}</td>
-          <td><button class="del-btn" onclick="deletePipelineEntry('${t.id}')" title="Delete">✕</button></td>
+          <td>${pipelineStageBadge(t.status, t.issueType)}</td>
+          <td>
+            <button class="edit-btn" onclick="openPipelineEditModal('${t.id}')" title="Edit">✏</button>
+            <button class="del-btn" onclick="deletePipelineEntry('${t.id}')" title="Delete">✕</button>
+          </td>
         </tr>`;
       }).join('');
     }
   }
 }
 function pipelineOverviewSnapshot(){
-  const active = data.pipeline.filter(p=>['pending','departed','arrived','unloading'].includes(p.status)).sort((a,b)=>new Date(a.estDelivery)-new Date(b.estDelivery));
+  const active = data.pipeline.filter(p=>['pending','departed','arrived','unloading','issue'].includes(p.status)).sort((a,b)=>new Date(a.estDelivery)-new Date(b.estDelivery));
   if(active.length===0){
     return '<p style="color:var(--text-faint);font-size:13px;">No trucks currently in pipeline.</p>';
   }
@@ -1579,7 +1947,7 @@ function pipelineOverviewSnapshot(){
       const showCountdown = t.status==='pending' || t.status==='departed';
       return `<div class="pipeline-card" data-pipeline-id="${t.id}" style="margin-bottom:8px;">
         <div class="pipeline-card-top">
-          <div><strong>${t.plate}</strong> <span class="mat-tag devi">${pipelineSourceLabel(t)}</span> ${pipelineStageBadge(t.status)}</div>
+          <div><strong>${t.plate || 'Truck TBD'}</strong> <span class="mat-tag devi">${pipelineSourceLabel(t)}</span> ${pipelineStageBadge(t.status, t.issueType)}</div>
           ${showCountdown ? `<span class="badge ${c.overdue?'critical':'warn'} pipeline-countdown">${c.text}</span>` : ''}
         </div>
       </div>`;
@@ -1590,16 +1958,45 @@ function updatePipelineCountdowns(){
     const id = card.dataset.pipelineId;
     const t = data.pipeline.find(p=>p.id===id);
     if(!t) return;
-    const c = pipelineCountdownInfo(t);
-    const badge = card.querySelector('.pipeline-countdown');
-    if(badge){
-      badge.textContent = c.text;
-      badge.classList.toggle('critical', c.overdue);
-      badge.classList.toggle('warn', !c.overdue);
+    const oldBadge = card.querySelector('.pipeline-card-top .pipeline-countdown');
+    if(oldBadge){
+      const c = pipelineCountdownInfo(t);
+      oldBadge.textContent = c.text;
+      oldBadge.classList.toggle('critical', c.overdue);
+      oldBadge.classList.toggle('warn', !c.overdue);
+    }
+    const timeLineEl = card.querySelector('.pc3-time-line');
+    if(timeLineEl){
+      const tl = pc3TimeLine(t);
+      if(tl.main) timeLineEl.innerHTML = `<span class="pc3-time-main ${tl.colorClass}">${tl.main}</span><span class="pc3-time-sub">${tl.sub}</span>`;
     }
   });
+  document.getElementById('pipelineStatsRow') && (document.getElementById('pipelineStatsRow').innerHTML = pipelineStatsHTML());
 }
 setInterval(updatePipelineCountdowns, 30000);
+
+/* Escape key closes whichever modal is currently open (desktop convenience) */
+const MODAL_CLOSE_FN = {
+  modalBackdrop: closeModal,
+  pipelineModalBackdrop: closePipelineModal,
+  pipelineEditModalBackdrop: closePipelineEditModal,
+  pipelineIssueModalBackdrop: closePipelineIssueModal,
+  pipelineStageModalBackdrop: closePipelineStageModal,
+  pipelineConvertModalBackdrop: closePipelineConvertModal,
+  estimateModalBackdrop: closeEstimateModal,
+  zeroFlagModalBackdrop: closeZeroFlagModal,
+  productionModalBackdrop: closeProductionModal,
+  saleModalBackdrop: closeSaleModal,
+  snapshotModalBackdrop: closeSnapshotModal,
+  csvImportModalBackdrop: closeCSVImportModal
+};
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Escape') return;
+  for(const id in MODAL_CLOSE_FN){
+    const el = document.getElementById(id);
+    if(el && el.classList.contains('open')){ MODAL_CLOSE_FN[id](); break; }
+  }
+});
 
 /* ---- Balances ---- */
 function computeBalance(material){
@@ -1632,7 +2029,11 @@ function computeAvgDailyPurchase(filterFn){
   const txs = data.transactions.filter(t=>t.type==='in' && filterFn(t));
   if(txs.length===0) return {avg:null,total:0,days:0};
   const dates = txs.map(t=>new Date(t.date).getTime());
-  const spanDays = Math.max(1, Math.round((Math.max(...dates)-Math.min(...dates))/86400000)+1);
+  const earliest = Math.min(...dates);
+  const todayMidnight = new Date(new Date().toDateString()).getTime();
+  // Span runs from the earliest delivery all the way to TODAY (not just the last delivery date),
+  // so idle days with no deliveries still count and correctly pull the average down.
+  const spanDays = Math.max(1, Math.round((todayMidnight-earliest)/86400000)+1);
   const total = txs.reduce((s,t)=>s+t.qty,0);
   return {avg: total/spanDays, total, days: spanDays};
 }
@@ -2061,6 +2462,26 @@ function siloCard(material, label){
       </div>
     </div>`;
 }
+function todayDeliveredHTML(material){
+  const now = new Date();
+  const todayStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const categories = material==='burada' ? ['burada'] : ['taal','akhtar'];
+  const todays = data.transactions.filter(t=>t.type==='in' && categories.includes(t.category) && t.date===todayStr);
+  if(todays.length===0){
+    return `<div class="today-delivered"><span class="td-label">Delivered Today</span><span class="td-value" style="color:var(--text-faint);">None logged yet</span></div>`;
+  }
+  const qty = todays.reduce((s,t)=>s+t.qty,0);
+  let breakdown = '';
+  if(material==='devi'){
+    const taalTx = todays.filter(t=>t.category==='taal');
+    const akhtarTx = todays.filter(t=>t.category==='akhtar');
+    const parts = [];
+    if(taalTx.length) parts.push(`Taals ${taalTx.length} · ${taalTx.reduce((s,t)=>s+t.qty,0).toLocaleString()} kg`);
+    if(akhtarTx.length) parts.push(`Akhtar ${akhtarTx.length} · ${akhtarTx.reduce((s,t)=>s+t.qty,0).toLocaleString()} kg`);
+    breakdown = parts.join('  •  ');
+  }
+  return `<div class="today-delivered"><span class="td-label">Delivered Today</span><span class="td-value"><strong>${todays.length}</strong> load${todays.length===1?'':'s'} — ${Math.round(qty).toLocaleString()} kg</span></div>${breakdown ? `<div class="today-delivered-sub">${breakdown}</div>` : ''}`;
+}
 function purchaseAveragesHTML(compact){
   const burada = computeAvgDailyPurchase(t=>t.category==='burada');
   const taal = computeAvgDailyPurchase(t=>t.category==='taal');
@@ -2436,6 +2857,22 @@ function unlockApp(){
   document.querySelector('.app').style.display = 'flex';
   loadData();
 }
+
+/* --- Collapsible sidebar (Zoho-style icon-only collapse) --- */
+const SIDEBAR_COLLAPSE_KEY = 'wpf-sidebar-collapsed';
+function toggleSidebar(){
+  const sb = document.getElementById('mainSidebar');
+  const collapsed = sb.classList.toggle('collapsed');
+  try{ localStorage.setItem(SIDEBAR_COLLAPSE_KEY, collapsed ? '1' : '0'); }catch(e){}
+}
+(function restoreSidebarState(){
+  let collapsed = false;
+  try{ collapsed = localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1'; }catch(e){}
+  if(collapsed){
+    const sb = document.getElementById('mainSidebar');
+    if(sb) sb.classList.add('collapsed');
+  }
+})();
 
 (function initLock(){
   let alreadyUnlocked = false;

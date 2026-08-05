@@ -61,7 +61,7 @@
   .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;padding:8px 10px 20px;color:var(--sidebar-brand-text);letter-spacing:0.2px;white-space:nowrap;overflow:hidden;}
   .brand-logo{width:26px;height:26px;flex-shrink:0;object-fit:contain;}
   .brand span.brand-sub{display:block;font-weight:400;font-size:11px;color:var(--sidebar-brand-sub);margin-top:2px;}
-  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--sidebar-text);font-size:13.5px;font-weight:500;cursor:pointer;margin-bottom:2px;white-space:nowrap;overflow:hidden;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:var(--sidebar-text);font-size:13.5px;font-weight:500;cursor:pointer;margin-bottom:2px;white-space:nowrap;overflow:hidden;position:relative;}
   .nav-item svg{width:17px;height:17px;flex-shrink:0;stroke:currentColor;}
   .nav-item:hover{background:var(--sidebar-hover-bg);color:var(--sidebar-text-hover);}
   .nav-item.active{background:var(--sidebar-active-bg);color:var(--sidebar-active-text);}
@@ -74,6 +74,40 @@
   .brand-short{display:none;font-weight:700;font-size:15px;}
   .sidebar.collapsed .nav-item{justify-content:center;padding:10px 0;}
   .sidebar.collapsed .nav-label{display:none;}
+
+  /* --- Custom tooltips (collapsed sidebar only) --- */
+  .sidebar.collapsed [data-tooltip]{position:relative;}
+  .sidebar.collapsed [data-tooltip]::after{
+    content:attr(data-tooltip);
+    position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);
+    background:#101322;color:#fff;font-size:12px;font-weight:600;
+    padding:6px 10px;border-radius:6px;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity 0.12s ease;
+    z-index:90;box-shadow:0 4px 14px rgba(0,0,0,0.28);
+  }
+  .sidebar.collapsed [data-tooltip]:hover::after{opacity:1;}
+
+  /* --- Quick Log flyout button (sidebar + mobile nav) --- */
+  .quicklog-wrap{position:relative;margin:0 0 8px;}
+  .quicklog-btn{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 12px;width:100%;box-sizing:border-box;border-radius:8px;background:var(--blue);color:#fff;}
+  .quicklog-btn svg{width:17px;height:17px;flex-shrink:0;}
+  .quicklog-btn .nav-label{font-size:13.5px;font-weight:700;white-space:nowrap;}
+  .quicklog-btn:hover{opacity:0.9;}
+  .sidebar.collapsed .quicklog-wrap{margin:0 0 8px;}
+  .sidebar.collapsed .quicklog-btn{justify-content:center;padding:10px 0;}
+  .quicklog-menu{display:none;position:absolute;left:calc(100% + 10px);top:0;background:var(--sidebar-bg);border:1px solid var(--sidebar-border);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,0.4);min-width:242px;z-index:60;overflow:hidden;padding:10px;}
+  .quicklog-menu.open{display:block;}
+  .quicklog-menu-label{font-size:10.5px;font-weight:700;color:var(--sidebar-text);opacity:0.6;text-transform:uppercase;letter-spacing:0.5px;padding:4px 12px 8px;}
+  .quicklog-item{display:flex;align-items:center;gap:11px;padding:11px 14px;font-size:13px;color:var(--sidebar-text);cursor:pointer;font-weight:600;white-space:nowrap;border-radius:6px;}
+  .quicklog-item svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;}
+  .quicklog-item:hover{background:var(--sidebar-hover-bg);color:#fff;}
+  .mnav-quicklog-wrap{margin:0;flex:1;display:flex;justify-content:center;}
+  .quicklog-btn-mobile{all:unset;flex:1;display:flex;align-items:center;justify-content:center;padding:8px 4px;border-radius:10px;cursor:pointer;background:var(--blue);color:#fff;}
+  .quicklog-btn-mobile svg{width:22px;height:22px;}
+  @media(max-width:720px){
+    .quicklog-menu{position:fixed;left:12px;right:12px;top:auto;bottom:calc(64px + env(safe-area-inset-bottom));width:auto;min-width:0;padding:10px;}
+    .quicklog-item{padding:14px 16px;}
+  }
   .sidebar-toggle-wrap{margin-top:auto;display:flex;justify-content:flex-end;padding-top:10px;}
   .sidebar.collapsed .sidebar-toggle-wrap{justify-content:center;}
   .sidebar-toggle-btn{background:var(--sidebar-toggle-bg);border:none;border-radius:8px;width:34px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--sidebar-text);flex-shrink:0;}
@@ -140,6 +174,12 @@
   .badge.na{background:#F1F2F4;color:var(--text-faint);}
   .badge.info{background:var(--purple-soft);color:var(--purple);}
   .badge.unload{background:#FEF3C7;color:#B45309;}
+  .badge.unload{display:inline-flex;align-items:center;}
+  .live-dot-wrap{position:relative;display:inline-block;width:7px;height:7px;margin-right:6px;flex-shrink:0;}
+  .live-dot-core{position:absolute;inset:0;border-radius:50%;background:currentColor;}
+  .live-dot-ping{position:absolute;inset:0;border-radius:50%;background:currentColor;animation:livePing 1.6s cubic-bezier(0,0,0.2,1) infinite;}
+  @keyframes livePing{0%{transform:scale(1);opacity:.6;}100%{transform:scale(2.6);opacity:0;}}
+  .silo-live-tag{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10.5px;font-weight:700;color:#B45309;background:#FEF3C7;padding:3px 9px 3px 7px;border-radius:20px;letter-spacing:0.3px;margin-left:8px;}
   .runway-tile{border:1px solid var(--border);border-radius:10px;padding:14px;background:#FAFBFC;}
   .runway-tile-name{font-size:12.5px;font-weight:700;color:var(--text-dim);margin-bottom:6px;}
   .runway-tile-tons{font-family:var(--mono);font-size:22px;font-weight:700;color:#1a1a1a;}
@@ -338,42 +378,91 @@
       <span class="brand-full">WPF Monitor<span class="brand-sub">Beta</span></span>
       <span class="brand-short">WPF</span>
     </div>
-    <div class="nav-item active" data-page="overview" onclick="showPage('overview')" title="Overview">
+    <div class="quicklog-wrap">
+      <button class="quicklog-btn" onclick="toggleQuickLogMenu(event)" data-tooltip="Quick Log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <span class="nav-label">Quick Log</span>
+      </button>
+      <div class="quicklog-menu" id="quicklogMenu">
+        <div class="quicklog-menu-label">Quick Log</div>
+        <div class="quicklog-item" onclick="closeQuickLogMenu();openModal('in')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7.5v9L12 21l-9-4.5v-9L12 3z"/><path d="M3 7.5l9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
+          <span>+ Log Purchase / Delivery</span>
+        </div>
+        <div class="quicklog-item" onclick="closeQuickLogMenu();openProductionModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V10l5 3v-3l5 3v-3l5 3v8H3z"/><path d="M3 21h18"/></svg>
+          <span>+ Log Production</span>
+        </div>
+        <div class="quicklog-item" onclick="closeQuickLogMenu();openSaleModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M3 4h2l2.6 12.2a2 2 0 0 0 2 1.8h7.7a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+          <span>+ Log Sale</span>
+        </div>
+        <div class="quicklog-item" onclick="closeQuickLogMenu();openPipelineModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/><path d="M9 12h2"/></svg>
+          <span>+ Log Truck</span>
+        </div>
+      </div>
+    </div>
+    <div class="nav-item active" data-page="overview" onclick="showPage('overview')" data-tooltip="Overview">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h7v7"/></svg>
       <span class="nav-label">Overview</span>
     </div>
-    <div class="nav-item" data-page="sources" onclick="showPage('sources')" title="Sources">
+    <div class="nav-item" data-page="sources" onclick="showPage('sources')" data-tooltip="Sources">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7.5v9L12 21l-9-4.5v-9L12 3z"/><path d="M3 7.5l9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
       <span class="nav-label">Sources</span>
     </div>
-    <div class="nav-item" data-page="pipeline" onclick="showPage('pipeline')" title="Truck Pipeline">
+    <div class="nav-item" data-page="pipeline" onclick="showPage('pipeline')" data-tooltip="Truck Pipeline">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/><path d="M9 12h2"/></svg>
       <span class="nav-label">Truck Pipeline</span>
     </div>
-    <div class="nav-item" data-page="production" onclick="showPage('production')" title="Production">
+    <div class="nav-item" data-page="production" onclick="showPage('production')" data-tooltip="Production">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V10l5 3v-3l5 3v-3l5 3v8H3z"/><path d="M3 21h18"/></svg>
       <span class="nav-label">Production</span>
     </div>
-    <div class="nav-item" data-page="log" onclick="showPage('log')" title="Activity Log">
+    <div class="nav-item" data-page="log" onclick="showPage('log')" data-tooltip="Activity Log">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
       <span class="nav-label">Activity Log</span>
     </div>
-    <div class="nav-item" data-page="checks" onclick="showPage('checks')" title="Stock Check">
+    <div class="nav-item" data-page="checks" onclick="showPage('checks')" data-tooltip="Stock Check">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 7v3M10 7v4M14 7v3M18 7v4"/></svg>
       <span class="nav-label">Stock Check</span>
     </div>
-    <div class="nav-item" data-page="settings" onclick="showPage('settings')" title="Settings">
+    <div class="nav-item" data-page="settings" onclick="showPage('settings')" data-tooltip="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.9 2.9l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 11-4 0v-.2a1.7 1.7 0 00-1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.9-2.9l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.2a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.9-2.9l.1.1a1.7 1.7 0 001.9.3H9.5a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.2a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.9 2.9l-.1.1a1.7 1.7 0 00-.3 1.9V9.5a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.2a1.7 1.7 0 00-1.5 1z"/></svg>
       <span class="nav-label">Settings</span>
     </div>
     <div class="sidebar-toggle-wrap">
-      <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse/expand menu">
+      <button class="sidebar-toggle-btn" onclick="toggleSidebar()" data-tooltip="Collapse/expand menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>
       </button>
     </div>
   </div>
 
   <nav class="mobile-bottom-nav">
+    <div class="quicklog-wrap mnav-quicklog-wrap">
+      <button class="nav-item mnav-item quicklog-btn-mobile" onclick="toggleQuickLogMenu(event)" title="Quick Log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <div class="quicklog-menu" id="quicklogMenuMobile">
+        <div class="quicklog-menu-label">Quick Log</div>
+        <div class="quicklog-item" onclick="closeQuickLogMenu();openModal('in')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7.5v9L12 21l-9-4.5v-9L12 3z"/><path d="M3 7.5l9 4.5 9-4.5"/><path d="M12 12v9"/></svg>
+          <span>+ Log Purchase / Delivery</span>
+        </div>
+        <div class="quicklog-item" onclick="closeQuickLogMenu();openProductionModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21V10l5 3v-3l5 3v-3l5 3v8H3z"/><path d="M3 21h18"/></svg>
+          <span>+ Log Production</span>
+        </div>
+        <div class="quicklog-item" onclick="closeQuickLogMenu();openSaleModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M3 4h2l2.6 12.2a2 2 0 0 0 2 1.8h7.7a2 2 0 0 0 2-1.6L21 8H6"/></svg>
+          <span>+ Log Sale</span>
+        </div>
+        <div class="quicklog-item" onclick="closeQuickLogMenu();openPipelineModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="8" width="14" height="8" rx="1"/><path d="M15 11h4l3 3v2h-7z"/><circle cx="6" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/><path d="M9 12h2"/></svg>
+          <span>+ Log Truck</span>
+        </div>
+      </div>
+    </div>
     <div class="nav-item mnav-item active" data-page="overview" onclick="showPage('overview')" title="Overview">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l5-5 4 4 8-8"/><path d="M14 8h7v7"/></svg>
     </div>
@@ -448,6 +537,9 @@
             <div class="card-footer"><a onclick="showPage('production')">View production log</a></div>
           </div>
           <div class="card">
+            <div class="card-head"><h3>Production Today</h3></div>
+            <div id="todayProductionBreakdown"></div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
             <div class="card-head"><h3>Production This Month</h3></div>
             <div id="monthProductionBreakdown"></div>
             <div class="card-footer"><a onclick="showPage('production')">View production log</a></div>
@@ -1740,7 +1832,7 @@ function pipelineStageBadge(status, issueType){
   if(status==='pending') return `<span class="badge na">Loading</span>`;
   if(status==='departed') return `<span class="badge info">En Route</span>`;
   if(status==='arrived') return `<span class="badge warn">Arrived — Queued</span>`;
-  if(status==='unloading') return `<span class="badge unload">Unloading</span>`;
+  if(status==='unloading') return `<span class="badge unload"><span class="live-dot-wrap"><span class="live-dot-core"></span><span class="live-dot-ping"></span></span>Unloading</span>`;
   if(status==='delivered') return `<span class="badge good">Delivered</span>`;
   if(status==='issue') return `<span class="badge critical">⚠ ${issueType||'Issue'}</span>`;
   return `<span class="badge critical">Cancelled</span>`;
@@ -1860,6 +1952,7 @@ function pipelineCardV3HTML(t){
   let borderClass = 'pc3-border-green';
   if((t.status==='pending'||t.status==='departed') && c.overdue) borderClass = 'pc3-border-red';
   else if(t.status==='pending') borderClass = 'pc3-border-amber';
+  else if(t.status==='unloading') borderClass = 'pc3-border-amber';
   const tl = pc3TimeLine(t);
   let driverPart = t.driverName || '';
   if(t.driverPhone) driverPart += (driverPart ? ' · ' : '') + t.driverPhone;
@@ -2427,6 +2520,9 @@ function renderFinishedGoods(){
 }
 
 /* ---- Cards / breakdowns ---- */
+function materialHasActiveUnloading(material){
+  return data.pipeline.some(p => p.status==='unloading' && (material==='devi' ? (p.source==='taal'||p.source==='akhtar') : p.source==='burada'));
+}
 function siloCard(material, label){
   const balance = computeBalance(material);
   const avgUsage = computeAvgDailyUsage(material);
@@ -2442,8 +2538,10 @@ function siloCard(material, label){
   const fillPct = Math.max(0, Math.min(100, (balance/capacity)*100));
   const fillColor = statusClass==='critical' ? 'var(--red)' : statusClass==='warn' ? 'var(--amber)' : (statusClass==='good' ? 'var(--blue)' : '#D1D5DB');
   const sub = material==='burada' ? 'Ali Bhai · Bareek + Mota, mixed delivery' : 'Ali Bhai (Taals) + Akhtar';
+  const unloadingNow = materialHasActiveUnloading(material);
+  const unloadTag = unloadingNow ? `<span class="silo-live-tag"><span class="live-dot-wrap"><span class="live-dot-core"></span><span class="live-dot-ping"></span></span>Unloading</span>` : '';
   return `
-    <div class="card-head"><h3>${label}</h3><span class="badge ${statusClass}">${statusLabel}</span></div>
+    <div class="card-head"><h3>${label}</h3><span class="badge ${statusClass}">${statusLabel}</span>${unloadTag}</div>
     <div class="silo-sub">${sub}</div>
     <div class="silo-body" style="margin-top:10px;">
       <div class="silo-gauge">
@@ -2540,6 +2638,17 @@ function buradaTypeBreakdownHTML(){
   if(grand===0) return '<p style="color:var(--text-dim);font-size:13px;margin:0;">No production runs logged yet.</p>';
   return sourceRow('Bareek (Blaze)', bareek, grand>0?bareek/grand*100:0, 'var(--red)') +
          sourceRow('Mota (Master)', mota, grand>0?mota/grand*100:0, 'var(--purple)');
+}
+function todayProductionBreakdownHTML(){
+  const todayStr = new Date().toISOString().slice(0,10);
+  const runs = data.production.filter(p => p.date === todayStr);
+  const totals = {blaze:0, master:0, signatureGold:0};
+  runs.forEach(p=>{ if(totals[p.product]!==undefined) totals[p.product]+=p.output; });
+  const grand = totals.blaze+totals.master+totals.signatureGold;
+  if(grand===0) return '<p style="color:var(--text-dim);font-size:13px;margin:0;">No production logged today yet.</p>';
+  return sourceRow('Blaze', totals.blaze, grand>0?totals.blaze/grand*100:0, 'var(--red)') +
+         sourceRow('Master', totals.master, grand>0?totals.master/grand*100:0, 'var(--purple)') +
+         sourceRow('Signature Gold', totals.signatureGold, grand>0?totals.signatureGold/grand*100:0, 'var(--amber)');
 }
 function monthProductionBreakdownHTML(){
   const now = new Date();
@@ -2680,6 +2789,7 @@ function render(){
   document.getElementById('wastageOverviewCard').innerHTML = wastageOverviewHTML();
   document.getElementById('pipelineOverviewCard').innerHTML = pipelineOverviewSnapshot();
   document.getElementById('buradaTypeBreakdown').innerHTML = buradaTypeBreakdownHTML();
+  document.getElementById('todayProductionBreakdown').innerHTML = todayProductionBreakdownHTML();
   document.getElementById('monthProductionBreakdown').innerHTML = monthProductionBreakdownHTML();
   document.getElementById('finishedGoodsOverviewCard').innerHTML = finishedGoodsOverviewHTML();
   document.getElementById('sourceBreakdownOverview').innerHTML = sourceBreakdownHTML();
@@ -2870,6 +2980,34 @@ function unlockApp(isViewOnly){
   loadData();
 }
 
+/* --- Quick Log flyout (sidebar + mobile nav) --- */
+function toggleQuickLogMenu(evt){
+  if(evt) evt.stopPropagation();
+  const wrap = evt.currentTarget.closest('.quicklog-wrap');
+  if(!wrap) return;
+  const menu = wrap.querySelector('.quicklog-menu');
+  if(!menu) return;
+  const wasOpen = menu.classList.contains('open');
+  closeQuickLogMenu();
+  if(wasOpen) return;
+  if(wrap.closest('.sidebar')){
+    const btnRect = evt.currentTarget.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.left = (btnRect.right + 10) + 'px';
+    let top = btnRect.top;
+    const estHeight = 190;
+    if(top + estHeight > window.innerHeight - 10) top = Math.max(10, window.innerHeight - estHeight - 10);
+    menu.style.top = top + 'px';
+  }
+  menu.classList.add('open');
+}
+function closeQuickLogMenu(){
+  document.querySelectorAll('.quicklog-menu.open').forEach(m=>m.classList.remove('open'));
+}
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.quicklog-wrap')) closeQuickLogMenu();
+});
+
 /* --- Collapsible sidebar (Zoho-style icon-only collapse) --- */
 const SIDEBAR_COLLAPSE_KEY = 'wpf-sidebar-collapsed';
 function toggleSidebar(){
@@ -2921,6 +3059,7 @@ function applyViewOnlyRestrictions(){
     }
   });
   document.querySelectorAll('[data-page="settings"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.quicklog-wrap').forEach(el => el.style.display = 'none');
   const csvInput = document.getElementById('csvImportInput');
   if(csvInput) csvInput.style.display = 'none';
 }
